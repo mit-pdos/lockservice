@@ -1,13 +1,15 @@
 package lockservice
 
-import "net"
-import "net/rpc"
-import "log"
-import "sync"
-import "fmt"
-import "os"
-import "io"
-import "time"
+import (
+	"fmt"
+	"io"
+	"log"
+	"net"
+	"net/rpc"
+	"os"
+	"sync"
+	"time"
+)
 
 type LockServer struct {
 	mu    sync.Mutex
@@ -19,18 +21,18 @@ type LockServer struct {
 	backup     string // backup's port
 
 	// for each lock name, is it locked?
-	locks map[string]bool
+	locks map[uint64]bool
 
 	// each CID's last sequence #
-	lastSeq   map[int64]int64
-	lastReply map[int64]bool
+	lastSeq   map[uint64]uint64
+	lastReply map[uint64]bool
 }
 
 func (ls *LockServer) forwardLock(args LockArgs) {
 	if ls.am_primary && ls.backup != "" {
 		var reply LockReply
 
-		ok := call(ls.backup, "LockServer.Lock", args, &reply)
+		ok := CallLock(ls.backup, &args, &reply)
 		if ok == false {
 			// log.Printf("forwardLock(%v) RPC failed\n", ls.backup)
 			return
@@ -42,7 +44,7 @@ func (ls *LockServer) forwardUnlock(args UnlockArgs) {
 	if ls.am_primary && ls.backup != "" {
 		var reply UnlockReply
 
-		ok := call(ls.backup, "LockServer.Unlock", args, &reply)
+		ok := CallUnlock(ls.backup, &args, &reply)
 		if ok == false {
 			// log.Printf("forwardUnlock(%v) RPC failed\n", ls.backup)
 			return
@@ -141,10 +143,10 @@ func StartServer(primary string, backup string, am_primary bool) *LockServer {
 	ls := new(LockServer)
 	ls.backup = backup
 	ls.am_primary = am_primary
-	ls.locks = map[string]bool{}
+	ls.locks = map[uint64]bool{}
 
-	ls.lastSeq = map[int64]int64{}
-	ls.lastReply = map[int64]bool{}
+	ls.lastSeq = map[uint64]uint64{}
+	ls.lastReply = map[uint64]bool{}
 
 	me := ""
 	if am_primary {

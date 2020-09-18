@@ -1,21 +1,32 @@
 package lockservice
 
-import "testing"
-import "runtime"
-import "math/rand"
-import "os"
-import "strconv"
-import "time"
-import "fmt"
+import (
+	crand "crypto/rand"
+	"fmt"
+	"math/big"
+	"math/rand"
+	"os"
+	"runtime"
+	"strconv"
+	"testing"
+	"time"
+)
 
-func tl(t *testing.T, ck *Clerk, lockname string, expected bool) {
+func nrand() uint64 {
+	max := big.NewInt(int64(1) << 62)
+	bigx, _ := crand.Int(crand.Reader, max)
+	x := bigx.Uint64()
+	return x
+}
+
+func tl(t *testing.T, ck *Clerk, lockname uint64, expected bool) {
 	x := ck.Lock(lockname)
 	if x != expected {
 		t.Fatalf("Lock(%v) returned %v; expected %v", lockname, x, expected)
 	}
 }
 
-func tu(t *testing.T, ck *Clerk, lockname string, expected bool) {
+func tu(t *testing.T, ck *Clerk, lockname uint64, expected bool) {
 	x := ck.Unlock(lockname)
 	if x != expected {
 		t.Fatalf("Unlock(%v) returned %v; expected %v", lockname, x, expected)
@@ -46,20 +57,20 @@ func TestBasic(t *testing.T) {
 	p := StartServer(phost, bhost, true)  // primary
 	b := StartServer(phost, bhost, false) // backup
 
-	ck := MakeClerk(phost, bhost)
+	ck := MakeClerk(phost, bhost, nrand())
 
-	tl(t, ck, "a", true)
-	tu(t, ck, "a", true)
+	tl(t, ck, 0, true)
+	tu(t, ck, 0, true)
 
-	tl(t, ck, "a", true)
-	tl(t, ck, "b", true)
-	tu(t, ck, "a", true)
-	tu(t, ck, "b", true)
+	tl(t, ck, 0, true)
+	tl(t, ck, 1, true)
+	tu(t, ck, 0, true)
+	tu(t, ck, 1, true)
 
-	tl(t, ck, "a", true)
-	tl(t, ck, "a", false)
-	tu(t, ck, "a", true)
-	tu(t, ck, "a", false)
+	tl(t, ck, 0, true)
+	tl(t, ck, 0, false)
+	tu(t, ck, 0, true)
+	tu(t, ck, 0, false)
 
 	p.kill()
 	b.kill()
@@ -76,31 +87,31 @@ func TestPrimaryFail1(t *testing.T) {
 	p := StartServer(phost, bhost, true)  // primary
 	b := StartServer(phost, bhost, false) // backup
 
-	ck := MakeClerk(phost, bhost)
+	ck := MakeClerk(phost, bhost, nrand())
 
-	tl(t, ck, "a", true)
+	tl(t, ck, 0, true)
 
-	tl(t, ck, "b", true)
-	tu(t, ck, "b", true)
+	tl(t, ck, 1, true)
+	tu(t, ck, 1, true)
 
-	tl(t, ck, "c", true)
-	tl(t, ck, "c", false)
+	tl(t, ck, 2, true)
+	tl(t, ck, 2, false)
 
-	tl(t, ck, "d", true)
-	tu(t, ck, "d", true)
-	tl(t, ck, "d", true)
+	tl(t, ck, 3, true)
+	tu(t, ck, 3, true)
+	tl(t, ck, 3, true)
 
 	p.kill()
 
-	tl(t, ck, "a", false)
-	tu(t, ck, "a", true)
+	tl(t, ck, 0, false)
+	tu(t, ck, 0, true)
 
-	tu(t, ck, "b", false)
-	tl(t, ck, "b", true)
+	tu(t, ck, 1, false)
+	tl(t, ck, 1, true)
 
-	tu(t, ck, "c", true)
+	tu(t, ck, 2, true)
 
-	tu(t, ck, "d", true)
+	tu(t, ck, 3, true)
 
 	b.kill()
 	fmt.Printf("  ... Passed\n")
@@ -115,18 +126,18 @@ func TestPrimaryFail2(t *testing.T) {
 	p := StartServer(phost, bhost, true)  // primary
 	b := StartServer(phost, bhost, false) // backup
 
-	ck1 := MakeClerk(phost, bhost)
-	ck2 := MakeClerk(phost, bhost)
+	ck1 := MakeClerk(phost, bhost, nrand())
+	ck2 := MakeClerk(phost, bhost, nrand())
 
-	tl(t, ck1, "a", true)
-	tl(t, ck1, "b", true)
+	tl(t, ck1, 0, true)
+	tl(t, ck1, 1, true)
 
 	p.dying = true
 
-	tl(t, ck2, "c", true)
-	tl(t, ck1, "c", false)
-	tu(t, ck2, "c", true)
-	tl(t, ck1, "c", true)
+	tl(t, ck2, 2, true)
+	tl(t, ck1, 2, false)
+	tu(t, ck2, 2, true)
+	tl(t, ck1, 2, true)
 
 	b.kill()
 	fmt.Printf("  ... Passed\n")
@@ -141,14 +152,14 @@ func TestPrimaryFail3(t *testing.T) {
 	p := StartServer(phost, bhost, true)  // primary
 	b := StartServer(phost, bhost, false) // backup
 
-	ck1 := MakeClerk(phost, bhost)
+	ck1 := MakeClerk(phost, bhost, nrand())
 
-	tl(t, ck1, "a", true)
-	tl(t, ck1, "b", true)
+	tl(t, ck1, 0, true)
+	tl(t, ck1, 1, true)
 
 	p.dying = true
 
-	tl(t, ck1, "b", false)
+	tl(t, ck1, 1, false)
 
 	b.kill()
 	fmt.Printf("  ... Passed\n")
@@ -163,15 +174,15 @@ func TestPrimaryFail4(t *testing.T) {
 	p := StartServer(phost, bhost, true)  // primary
 	b := StartServer(phost, bhost, false) // backup
 
-	ck1 := MakeClerk(phost, bhost)
-	ck2 := MakeClerk(phost, bhost)
+	ck1 := MakeClerk(phost, bhost, nrand())
+	ck2 := MakeClerk(phost, bhost, nrand())
 
-	tl(t, ck1, "a", true)
-	tl(t, ck1, "b", true)
+	tl(t, ck1, 0, true)
+	tl(t, ck1, 1, true)
 
 	p.dying = true
 
-	tl(t, ck2, "b", false)
+	tl(t, ck2, 1, false)
 
 	b.kill()
 	fmt.Printf("  ... Passed\n")
@@ -186,17 +197,17 @@ func TestPrimaryFail5(t *testing.T) {
 	p := StartServer(phost, bhost, true)  // primary
 	b := StartServer(phost, bhost, false) // backup
 
-	ck1 := MakeClerk(phost, bhost)
-	ck2 := MakeClerk(phost, bhost)
+	ck1 := MakeClerk(phost, bhost, nrand())
+	ck2 := MakeClerk(phost, bhost, nrand())
 
-	tl(t, ck1, "a", true)
-	tl(t, ck1, "b", true)
-	tu(t, ck1, "b", true)
+	tl(t, ck1, 0, true)
+	tl(t, ck1, 1, true)
+	tu(t, ck1, 1, true)
 
 	p.dying = true
 
-	tu(t, ck1, "b", false)
-	tl(t, ck2, "b", true)
+	tu(t, ck1, 1, false)
+	tl(t, ck2, 1, true)
 
 	b.kill()
 	fmt.Printf("  ... Passed\n")
@@ -211,18 +222,18 @@ func TestPrimaryFail6(t *testing.T) {
 	p := StartServer(phost, bhost, true)  // primary
 	b := StartServer(phost, bhost, false) // backup
 
-	ck1 := MakeClerk(phost, bhost)
-	ck2 := MakeClerk(phost, bhost)
+	ck1 := MakeClerk(phost, bhost, nrand())
+	ck2 := MakeClerk(phost, bhost, nrand())
 
-	tl(t, ck1, "a", true)
-	tu(t, ck1, "a", true)
-	tu(t, ck2, "a", false)
-	tl(t, ck1, "b", true)
+	tl(t, ck1, 0, true)
+	tu(t, ck1, 0, true)
+	tu(t, ck2, 0, false)
+	tl(t, ck1, 1, true)
 
 	p.dying = true
 
-	tu(t, ck2, "b", true)
-	tl(t, ck1, "b", true)
+	tu(t, ck2, 1, true)
+	tl(t, ck1, 1, true)
 
 	b.kill()
 	fmt.Printf("  ... Passed\n")
@@ -237,13 +248,13 @@ func TestPrimaryFail7(t *testing.T) {
 	p := StartServer(phost, bhost, true)  // primary
 	b := StartServer(phost, bhost, false) // backup
 
-	ck1 := MakeClerk(phost, bhost)
-	ck2 := MakeClerk(phost, bhost)
+	ck1 := MakeClerk(phost, bhost, nrand())
+	ck2 := MakeClerk(phost, bhost, nrand())
 
-	tl(t, ck1, "a", true)
-	tu(t, ck1, "a", true)
-	tu(t, ck2, "a", false)
-	tl(t, ck1, "b", true)
+	tl(t, ck1, 0, true)
+	tu(t, ck1, 0, true)
+	tu(t, ck2, 0, false)
+	tl(t, ck1, 1, true)
 
 	p.dying = true
 
@@ -251,18 +262,18 @@ func TestPrimaryFail7(t *testing.T) {
 	go func() {
 		ok := false
 		defer func() { ch <- ok }()
-		tu(t, ck2, "b", true) // 2 second delay until retry
+		tu(t, ck2, 1, true) // 2 second delay until retry
 		ok = true
 	}()
 	time.Sleep(1 * time.Second)
-	tl(t, ck1, "b", true)
+	tl(t, ck1, 1, true)
 
 	ok := <-ch
 	if ok == false {
 		t.Fatalf("re-sent Unlock did not return true")
 	}
 
-	tu(t, ck1, "b", true)
+	tu(t, ck1, 1, true)
 
 	b.kill()
 	fmt.Printf("  ... Passed\n")
@@ -277,11 +288,11 @@ func TestPrimaryFail8(t *testing.T) {
 	p := StartServer(phost, bhost, true)  // primary
 	b := StartServer(phost, bhost, false) // backup
 
-	ck1 := MakeClerk(phost, bhost)
-	ck2 := MakeClerk(phost, bhost)
+	ck1 := MakeClerk(phost, bhost, nrand())
+	ck2 := MakeClerk(phost, bhost, nrand())
 
-	tl(t, ck1, "a", true)
-	tu(t, ck1, "a", true)
+	tl(t, ck1, 0, true)
+	tu(t, ck1, 0, true)
 
 	p.dying = true
 
@@ -289,18 +300,18 @@ func TestPrimaryFail8(t *testing.T) {
 	go func() {
 		ok := false
 		defer func() { ch <- ok }()
-		tu(t, ck2, "a", false) // 2 second delay until retry
+		tu(t, ck2, 0, false) // 2 second delay until retry
 		ok = true
 	}()
 	time.Sleep(1 * time.Second)
-	tl(t, ck1, "a", true)
+	tl(t, ck1, 0, true)
 
 	ok := <-ch
 	if ok == false {
 		t.Fatalf("re-sent Unlock did not return false")
 	}
 
-	tu(t, ck1, "a", true)
+	tu(t, ck1, 0, true)
 
 	b.kill()
 	fmt.Printf("  ... Passed\n")
@@ -315,31 +326,31 @@ func TestBackupFail(t *testing.T) {
 	p := StartServer(phost, bhost, true)  // primary
 	b := StartServer(phost, bhost, false) // backup
 
-	ck := MakeClerk(phost, bhost)
+	ck := MakeClerk(phost, bhost, nrand())
 
-	tl(t, ck, "a", true)
+	tl(t, ck, 0, true)
 
-	tl(t, ck, "b", true)
-	tu(t, ck, "b", true)
+	tl(t, ck, 1, true)
+	tu(t, ck, 1, true)
 
-	tl(t, ck, "c", true)
-	tl(t, ck, "c", false)
+	tl(t, ck, 2, true)
+	tl(t, ck, 2, false)
 
-	tl(t, ck, "d", true)
-	tu(t, ck, "d", true)
-	tl(t, ck, "d", true)
+	tl(t, ck, 3, true)
+	tu(t, ck, 3, true)
+	tl(t, ck, 3, true)
 
 	b.kill()
 
-	tl(t, ck, "a", false)
-	tu(t, ck, "a", true)
+	tl(t, ck, 0, false)
+	tu(t, ck, 0, true)
 
-	tu(t, ck, "b", false)
-	tl(t, ck, "b", true)
+	tu(t, ck, 1, false)
+	tl(t, ck, 1, true)
 
-	tu(t, ck, "c", true)
+	tu(t, ck, 2, true)
 
-	tu(t, ck, "d", true)
+	tu(t, ck, 3, true)
 
 	p.kill()
 	fmt.Printf("  ... Passed\n")
@@ -362,11 +373,11 @@ func TestMany(t *testing.T) {
 
 	for xi := 0; xi < nclients; xi++ {
 		go func(i int) {
-			ck := MakeClerk(phost, bhost)
+			ck := MakeClerk(phost, bhost, nrand())
 			rr := rand.New(rand.NewSource(int64(os.Getpid() + i)))
 			for done == false {
-				locknum := (rr.Int() % nlocks)
-				lockname := strconv.Itoa(locknum + (i * 1000))
+				locknum := (rr.Uint64() % nlocks)
+				lockname := locknum + uint64(i*1000)
 				what := rr.Int() % 2
 				if what == 0 {
 					ck.Lock(lockname)
@@ -385,13 +396,13 @@ func TestMany(t *testing.T) {
 	time.Sleep(2 * time.Second)
 	done = true
 	time.Sleep(time.Second)
-	ck := MakeClerk(phost, bhost)
+	ck := MakeClerk(phost, bhost, nrand())
 	for xi := 0; xi < nclients; xi++ {
 		if acks[xi] == false {
 			t.Fatal("one client didn't complete")
 		}
 		for locknum := 0; locknum < nlocks; locknum++ {
-			lockname := strconv.Itoa(locknum + (xi * 1000))
+			lockname := uint64(locknum + (xi * 1000))
 			locked := !ck.Lock(lockname)
 			if locked != state[xi][locknum] {
 				t.Fatal("bad final state")
@@ -421,11 +432,11 @@ func TestConcurrentCounts(t *testing.T) {
 
 	for xi := 0; xi < nclients; xi++ {
 		go func(i int) {
-			ck := MakeClerk(phost, bhost)
+			ck := MakeClerk(phost, bhost, nrand())
 			rr := rand.New(rand.NewSource(int64(os.Getpid() + i)))
 			for done == false {
-				locknum := rr.Int() % nlocks
-				lockname := strconv.Itoa(locknum)
+				locknum := rr.Uint64() % nlocks
+				lockname := locknum
 				what := rr.Int() % 2
 				if what == 0 {
 					if ck.Lock(lockname) {
@@ -451,7 +462,7 @@ func TestConcurrentCounts(t *testing.T) {
 			t.Fatal("one client didn't complete")
 		}
 	}
-	ck := MakeClerk(phost, bhost)
+	ck := MakeClerk(phost, bhost, nrand())
 	for locknum := 0; locknum < nlocks; locknum++ {
 		nl := 0
 		nu := 0
@@ -459,7 +470,7 @@ func TestConcurrentCounts(t *testing.T) {
 			nl += locks[xi][locknum]
 			nu += unlocks[xi][locknum]
 		}
-		locked := ck.Unlock(strconv.Itoa(locknum))
+		locked := ck.Unlock(uint64(locknum))
 		// fmt.Printf("lock=%d nl=%d nu=%d locked=%v\n",
 		//   locknum, nl, nu, locked)
 		if nl < nu || nl > nu+1 {

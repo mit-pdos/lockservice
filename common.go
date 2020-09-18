@@ -11,9 +11,9 @@ package lockservice
 type LockArgs struct {
 	// Go's net/rpc requires that these field
 	// names start with upper case letters!
-	Lockname string // lock name
-	CID      int64
-	Seq      int64
+	Lockname uint64 // lock name
+	CID      uint64
+	Seq      uint64
 }
 
 type LockReply struct {
@@ -25,9 +25,9 @@ type LockReply struct {
 // It returns OK=false if the lock was not held.
 //
 type UnlockArgs struct {
-	Lockname string
-	CID      int64
-	Seq      int64
+	Lockname uint64
+	CID      uint64
+	Seq      uint64
 }
 
 type UnlockReply struct {

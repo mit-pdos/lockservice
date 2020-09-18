@@ -1,69 +1,23 @@
 package lockservice
 
-import "net/rpc"
-import "fmt"
-
-import "crypto/rand"
-import "math/big"
-
 //
 // the lockservice Clerk lives in the client
 // and maintains a little state.
 //
 type Clerk struct {
-	servers [2]string // primary port, backup port
-	cid     int64
-	seq     int64
+	primary string
+	backup  string
+	cid     uint64
+	seq     uint64
 }
 
-func nrand() int64 {
-	max := big.NewInt(int64(1) << 62)
-	bigx, _ := rand.Int(rand.Reader, max)
-	x := bigx.Int64()
-	return x
-}
-
-func MakeClerk(primary string, backup string) *Clerk {
+func MakeClerk(primary string, backup string, cid uint64) *Clerk {
 	ck := new(Clerk)
-	ck.servers[0] = primary
-	ck.servers[1] = backup
-	ck.cid = nrand()
+	ck.primary = primary
+	ck.backup = backup
+	ck.cid = cid
 	ck.seq = 1
 	return ck
-}
-
-//
-// call() sends an RPC to the rpcname handler on server srv
-// with arguments args, waits for the reply, and leaves the
-// reply in reply. the reply argument should be the address
-// of a reply structure.
-//
-// call() returns true if the server responded, and false
-// if call() was not able to contact the server. in particular,
-// reply's contents are valid if and only if call() returned true.
-//
-// you should assume that call() will return an
-// error after a while if the server is dead.
-// don't provide your own time-out mechanism.
-//
-// please use call() to send all RPCs, in client.go and server.go.
-// please don't change this function.
-//
-func call(srv string, rpcname string,
-	args interface{}, reply interface{}) bool {
-	c, errx := rpc.Dial("unix", srv)
-	if errx != nil {
-		return false
-	}
-	defer c.Close()
-
-	err := c.Call(rpcname, args, reply)
-	if err == nil {
-		return true
-	}
-
-	fmt.Println(err)
-	return false
 }
 
 //
@@ -73,22 +27,25 @@ func call(srv string, rpcname string,
 //
 // you will have to modify this function.
 //
-func (ck *Clerk) Lock(lockname string) bool {
+func (ck *Clerk) Lock(lockname uint64) bool {
 	args := &LockArgs{}
 	args.Lockname = lockname
 	args.CID = ck.cid
 	args.Seq = ck.seq
 	ck.seq++
-	for _, srv := range ck.servers {
-		// prepare the arguments.
-		var reply LockReply
 
-		// send an RPC request, wait for the reply.
-		ok := call(srv, "LockServer.Lock", args, &reply)
-		if ok == false {
-			continue
-		}
+	// prepare the arguments.
+	var reply LockReply
 
+	// send an RPC request, wait for the reply.
+	var ok bool
+	ok = CallLock(ck.primary, args, &reply)
+	if ok == true {
+		return reply.OK
+	}
+
+	ok = CallLock(ck.backup, args, &reply)
+	if ok == true {
 		return reply.OK
 	}
 
@@ -101,22 +58,25 @@ func (ck *Clerk) Lock(lockname string) bool {
 // false otherwise.
 //
 
-func (ck *Clerk) Unlock(lockname string) bool {
+func (ck *Clerk) Unlock(lockname uint64) bool {
 	// prepare the arguments.
 	args := &UnlockArgs{}
 	args.Lockname = lockname
 	args.CID = ck.cid
 	args.Seq = ck.seq
 	ck.seq++
-	for _, srv := range ck.servers {
-		var reply UnlockReply
 
-		// send an RPC request, wait for the reply.
-		ok := call(srv, "LockServer.Unlock", args, &reply)
-		if ok == false {
-			continue
-		}
+	var reply UnlockReply
 
+	// send an RPC request, wait for the reply.
+	var ok bool
+	ok = CallUnlock(ck.primary, args, &reply)
+	if ok == true {
+		return reply.OK
+	}
+
+	ok = CallUnlock(ck.backup, args, &reply)
+	if ok == true {
 		return reply.OK
 	}
 
