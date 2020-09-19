@@ -43,5 +43,5 @@ func CallLock(srv string, args *LockArgs, reply *LockReply) bool {
 }
 
 func CallUnlock(srv string, args *UnlockArgs, reply *UnlockReply) bool {
-	return call(srv, "LockServer.Lock", args, reply)
+	return call(srv, "LockServer.Unlock", args, reply)
 }
