@@ -12,13 +12,10 @@ import (
 )
 
 type LockServer struct {
-	mu    sync.Mutex
-	l     net.Listener
+	mu	  sync.Mutex
+	l	  net.Listener
 	dead  bool // for test_test.go
 	dying bool // for test_test.go
-
-	am_primary bool   // am I the primary?
-	backup     string // backup's port
 
 	// for each lock name, is it locked?
 	locks map[uint64]bool
@@ -28,45 +25,20 @@ type LockServer struct {
 	lastReply map[uint64]bool
 }
 
-func (ls *LockServer) forwardLock(args LockArgs) {
-	if ls.am_primary && ls.backup != "" {
-		var reply LockReply
-
-		ok := CallLock(ls.backup, &args, &reply)
-		if ok == false {
-			// log.Printf("forwardLock(%v) RPC failed\n", ls.backup)
-			return
-		}
-	}
-}
-
-func (ls *LockServer) forwardUnlock(args UnlockArgs) {
-	if ls.am_primary && ls.backup != "" {
-		var reply UnlockReply
-
-		ok := CallUnlock(ls.backup, &args, &reply)
-		if ok == false {
-			// log.Printf("forwardUnlock(%v) RPC failed\n", ls.backup)
-			return
-		}
-	}
-}
-
 //
 // server Lock RPC handler.
 //
-func (ls *LockServer) Lock(args *LockArgs, reply *LockReply) error {
+func (ls *LockServer) TryLock(args *LockArgs, reply *LockReply) error {
 	ls.mu.Lock()
 	defer ls.mu.Unlock()
 
+	// Check if seqno has been seen, and reply from the cache if so
 	last, ok := ls.lastSeq[args.CID]
 	if ok && args.Seq <= last {
 		reply.OK = ls.lastReply[args.CID]
 		return nil
 	}
 	ls.lastSeq[args.CID] = args.Seq
-
-	ls.forwardLock(*args)
 
 	locked, _ := ls.locks[args.Lockname]
 
@@ -93,8 +65,6 @@ func (ls *LockServer) Unlock(args *UnlockArgs, reply *UnlockReply) error {
 		return nil
 	}
 	ls.lastSeq[args.CID] = args.Seq
-
-	ls.forwardUnlock(*args)
 
 	locked, _ := ls.locks[args.Lockname]
 
@@ -139,21 +109,14 @@ func (dc DeafConn) Read(p []byte) (n int, err error) {
 	return dc.c.Read(p)
 }
 
-func StartServer(primary string, backup string, am_primary bool) *LockServer {
+func StartServer(primary string) *LockServer {
 	ls := new(LockServer)
-	ls.backup = backup
-	ls.am_primary = am_primary
 	ls.locks = map[uint64]bool{}
 
 	ls.lastSeq = map[uint64]uint64{}
 	ls.lastReply = map[uint64]bool{}
 
-	me := ""
-	if am_primary {
-		me = primary
-	} else {
-		me = backup
-	}
+	me := primary
 
 	// tell net/rpc about our RPC server and handlers.
 	rpcs := rpc.NewServer()

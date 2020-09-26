@@ -38,8 +38,8 @@ func call(srv string, rpcname string, args interface{}, reply interface{}) bool 
 	return false
 }
 
-func CallLock(srv string, args *LockArgs, reply *LockReply) bool {
-	return call(srv, "LockServer.Lock", args, reply)
+func CallTryLock(srv string, args *LockArgs, reply *LockReply) bool {
+	return call(srv, "LockServer.TryLock", args, reply)
 }
 
 func CallUnlock(srv string, args *UnlockArgs, reply *UnlockReply) bool {
