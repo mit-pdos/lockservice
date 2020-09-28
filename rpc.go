@@ -27,14 +27,15 @@ func call(srv string, rpcname string, args interface{}, reply interface{}) bool 
 	if errx != nil {
 		return false
 	}
-	defer c.Close()
 
 	err := c.Call(rpcname, args, reply)
 	if err == nil {
+	    c.Close()
 		return true
 	}
 
 	fmt.Println(err)
+	c.Close()
 	return false
 }
 

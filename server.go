@@ -1,21 +1,16 @@
 package lockservice
 
 import (
-	"fmt"
-	"io"
 	"log"
 	"net"
 	"net/rpc"
 	"os"
 	"sync"
-	"time"
 )
 
 type LockServer struct {
-	mu	  sync.Mutex
+	mu	  *sync.Mutex
 	l	  net.Listener
-	dead  bool // for test_test.go
-	dying bool // for test_test.go
 
 	// for each lock name, is it locked?
 	locks map[uint64]bool
@@ -25,18 +20,21 @@ type LockServer struct {
 	lastReply map[uint64]bool
 }
 
+
+
 //
 // server Lock RPC handler.
+// returns true iff error
 //
-func (ls *LockServer) TryLock(args *LockArgs, reply *LockReply) error {
+func (ls *LockServer) TryLock(args *LockArgs, reply *LockReply) bool {
 	ls.mu.Lock()
-	defer ls.mu.Unlock()
 
 	// Check if seqno has been seen, and reply from the cache if so
 	last, ok := ls.lastSeq[args.CID]
 	if ok && args.Seq <= last {
 		reply.OK = ls.lastReply[args.CID]
-		return nil
+		ls.mu.Unlock()
+		return false
 	}
 	ls.lastSeq[args.CID] = args.Seq
 
@@ -49,20 +47,22 @@ func (ls *LockServer) TryLock(args *LockArgs, reply *LockReply) error {
 		ls.locks[args.Lockname] = true
 	}
 	ls.lastReply[args.CID] = reply.OK
-	return nil
+	ls.mu.Unlock()
+	return false
 }
 
 //
 // server Unlock RPC handler.
+// returns true iff error
 //
-func (ls *LockServer) Unlock(args *UnlockArgs, reply *UnlockReply) error {
+func (ls *LockServer) Unlock(args *UnlockArgs, reply *UnlockReply) bool {
 	ls.mu.Lock()
-	defer ls.mu.Unlock()
 
 	last, ok := ls.lastSeq[args.CID]
 	if ok && args.Seq <= last {
 		reply.OK = ls.lastReply[args.CID]
-		return nil
+		ls.mu.Unlock()
+		return false
 	}
 	ls.lastSeq[args.CID] = args.Seq
 
@@ -75,46 +75,20 @@ func (ls *LockServer) Unlock(args *UnlockArgs, reply *UnlockReply) error {
 		reply.OK = false
 	}
 	ls.lastReply[args.CID] = reply.OK
-	return nil
+	ls.mu.Unlock()
+	return false
 }
 
-//
-// tell the server to shut itself down.
-// for testing.
-// please don't change this.
-//
 func (ls *LockServer) kill() {
-	ls.dead = true
 	ls.l.Close()
 }
 
-//
-// hack to allow test_test.go to have primary process
-// an RPC but not send a reply. can't use the shutdown()
-// trick b/c that causes client to immediately get an
-// error and send to backup before primary does.
-// please don't change anything to do with DeafConn.
-//
-type DeafConn struct {
-	c io.ReadWriteCloser
-}
-
-func (dc DeafConn) Write(p []byte) (n int, err error) {
-	return len(p), nil
-}
-func (dc DeafConn) Close() error {
-	return dc.c.Close()
-}
-func (dc DeafConn) Read(p []byte) (n int, err error) {
-	return dc.c.Read(p)
-}
-
-func StartServer(primary string) *LockServer {
+func StartServer(primary string) (*LockServer) {
 	ls := new(LockServer)
-	ls.locks = map[uint64]bool{}
+	ls.locks = make(map[uint64]bool)
 
-	ls.lastSeq = map[uint64]uint64{}
-	ls.lastReply = map[uint64]bool{}
+	ls.lastSeq = make(map[uint64]uint64)
+	ls.lastReply = make(map[uint64]bool)
 
 	me := primary
 
@@ -136,37 +110,12 @@ func StartServer(primary string) *LockServer {
 
 	// create a thread to accept RPC connections from clients.
 	go func() {
-		for ls.dead == false {
+		for {
 			conn, err := ls.l.Accept()
-			if err == nil && ls.dead == false {
-				if ls.dying {
-					// process the request but force discard of reply.
-
-					// without this the connection is never closed,
-					// b/c ServeConn() is waiting for more requests.
-					// test_test.go depends on this two seconds.
-					go func() {
-						time.Sleep(2 * time.Second)
-						conn.Close()
-					}()
-					ls.l.Close()
-
-					// this object has the type ServeConn expects,
-					// but discards writes (i.e. discards the RPC reply).
-					deaf_conn := DeafConn{c: conn}
-
-					rpcs.ServeConn(deaf_conn)
-
-					ls.dead = true
-				} else {
-					go rpcs.ServeConn(conn)
-				}
+			if err == nil {
+				go rpcs.ServeConn(conn)
 			} else if err == nil {
 				conn.Close()
-			}
-			if err != nil && ls.dead == false {
-				fmt.Printf("LockServer(%v) accept: %v\n", me, err.Error())
-				ls.kill()
 			}
 		}
 	}()
