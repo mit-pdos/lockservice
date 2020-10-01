@@ -33,3 +33,7 @@ type UnlockArgs struct {
 type UnlockReply struct {
 	OK bool
 }
+
+func nondet() bool {
+	return true
+}

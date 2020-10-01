@@ -5,12 +5,12 @@ package lockservice
 // and maintains a little state.
 //
 type Clerk struct {
-	primary string
+	primary *LockServer
 	cid     uint64
 	seq     uint64
 }
 
-func MakeClerk(primary string, cid uint64) *Clerk {
+func MakeClerk(primary *LockServer, cid uint64) *Clerk {
 	ck := new(Clerk)
 	ck.primary = primary
 	ck.cid = cid
@@ -29,10 +29,10 @@ func (ck *Clerk) Lock(lockname uint64) bool {
 	var reply LockReply
 
 	// send an RPC request, wait for the reply.
-	var ok = false
+	var errb = false
 	for {
-		ok = CallTryLock(ck.primary, args, &reply)
-		if ok == true {
+		errb = CallTryLock(ck.primary, args, &reply)
+		if errb == false {
 			if reply.OK {
 				break
 			}
@@ -57,10 +57,10 @@ func (ck *Clerk) Unlock(lockname uint64) bool {
 	var reply UnlockReply
 
 	// send an RPC request, wait for the reply.
-	var ok bool
+	var errb bool
 	for {
-		ok = CallUnlock(ck.primary, args, &reply)
-		if ok == true {
+		errb = CallUnlock(ck.primary, args, &reply)
+		if errb == false {
 			break
 		}
 	}

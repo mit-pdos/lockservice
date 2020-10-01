@@ -1,48 +1,33 @@
 package lockservice
 
-import (
-	"fmt"
-	"net/rpc"
-)
+import ()
 
-//
-// call() sends an RPC to the rpcname handler on server srv
-// with arguments args, waits for the reply, and leaves the
-// reply in reply. the reply argument should be the address
-// of a reply structure.
-//
-// call() returns true if the server responded, and false
-// if call() was not able to contact the server. in particular,
-// reply's contents are valid if and only if call() returned true.
-//
-// you should assume that call() will return an
-// error after a while if the server is dead.
-// don't provide your own time-out mechanism.
-//
-// please use call() to send all RPCs, in client.go and server.go.
-// please don't change this function.
-//
-func call(srv string, rpcname string, args interface{}, reply interface{}) bool {
-	c, errx := rpc.Dial("unix", srv)
-	if errx != nil {
-		return false
+// Returns true iff error
+func CallTryLock(srv *LockServer, args *LockArgs, reply *LockReply) bool {
+	go func() {
+		var dummy_reply LockReply
+		for {
+			srv.TryLock(args, &dummy_reply)
+		}
+	}()
+
+	if nondet() {
+		return srv.TryLock(args, reply)
 	}
-
-	err := c.Call(rpcname, args, reply)
-	if err == nil {
-		c.Close()
-		return true
-	}
-
-	fmt.Println(err)
-	c.Close()
-	return false
+	return true
 }
 
-func CallTryLock(srv string, args *LockArgs, reply *LockReply) bool {
-	return call(srv, "LockServer.TryLock", args, reply)
-}
+// Returns true iff error
+func CallUnlock(srv *LockServer, args *UnlockArgs, reply *UnlockReply) bool {
+	go func() {
+		var dummy_reply UnlockReply
+		for {
+			srv.Unlock(args, &dummy_reply)
+		}
+	}()
 
-func CallUnlock(srv string, args *UnlockArgs, reply *UnlockReply) bool {
-	return call(srv, "LockServer.Unlock", args, reply)
+	if nondet() {
+		return srv.Unlock(args, reply)
+	}
+	return true
 }
