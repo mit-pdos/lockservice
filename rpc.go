@@ -30,7 +30,7 @@ func call(srv string, rpcname string, args interface{}, reply interface{}) bool 
 
 	err := c.Call(rpcname, args, reply)
 	if err == nil {
-	    c.Close()
+		c.Close()
 		return true
 	}
 

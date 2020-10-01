@@ -4,11 +4,11 @@ import (
 	crand "crypto/rand"
 	"fmt"
 	"math/big"
-//	"math/rand"
-	"sync"
+	//	"math/rand"
 	"os"
 	"runtime"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 )
@@ -100,7 +100,6 @@ func TestBasicConcurrent(t *testing.T) {
 		tu(t, ck, 0, true)
 		fmt.Println("unlocked")
 	}
-
 
 	var wg sync.WaitGroup
 	wg.Add(2)

@@ -6,8 +6,8 @@ package lockservice
 //
 type Clerk struct {
 	primary string
-	cid		uint64
-	seq		uint64
+	cid     uint64
+	seq     uint64
 }
 
 func MakeClerk(primary string, cid uint64) *Clerk {
@@ -22,7 +22,7 @@ func MakeClerk(primary string, cid uint64) *Clerk {
 // waits until the lock service grants us the lock
 //
 func (ck *Clerk) Lock(lockname uint64) bool {
-    args := &LockArgs{Lockname:lockname, CID:ck.cid, Seq:ck.seq}
+	args := &LockArgs{Lockname: lockname, CID: ck.cid, Seq: ck.seq}
 	ck.seq = ck.seq + 1
 
 	// prepare the arguments.
@@ -33,12 +33,14 @@ func (ck *Clerk) Lock(lockname uint64) bool {
 	for {
 		ok = CallTryLock(ck.primary, args, &reply)
 		if ok == true {
-			if reply.OK { break }
+			if reply.OK {
+				break
+			}
 			args.Seq = ck.seq
 			ck.seq = ck.seq + 1
 		}
 	}
-    return reply.OK
+	return reply.OK
 }
 
 //
@@ -49,7 +51,7 @@ func (ck *Clerk) Lock(lockname uint64) bool {
 
 func (ck *Clerk) Unlock(lockname uint64) bool {
 	// prepare the arguments.
-    args := &UnlockArgs{Lockname:lockname, CID:ck.cid, Seq:ck.seq}
+	args := &UnlockArgs{Lockname: lockname, CID: ck.cid, Seq: ck.seq}
 	ck.seq = ck.seq + 1
 
 	var reply UnlockReply
@@ -59,7 +61,7 @@ func (ck *Clerk) Unlock(lockname uint64) bool {
 	for {
 		ok = CallUnlock(ck.primary, args, &reply)
 		if ok == true {
-		    break
+			break
 		}
 	}
 

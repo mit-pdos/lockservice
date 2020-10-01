@@ -9,8 +9,8 @@ import (
 )
 
 type LockServer struct {
-	mu	  *sync.Mutex
-	l	  net.Listener
+	mu *sync.Mutex
+	l  net.Listener
 
 	// for each lock name, is it locked?
 	locks map[uint64]bool
@@ -19,8 +19,6 @@ type LockServer struct {
 	lastSeq   map[uint64]uint64
 	lastReply map[uint64]bool
 }
-
-
 
 //
 // server Lock RPC handler.
@@ -83,7 +81,7 @@ func (ls *LockServer) kill() {
 	ls.l.Close()
 }
 
-func StartServer(primary string) (*LockServer) {
+func StartServer(primary string) *LockServer {
 	ls := new(LockServer)
 	ls.locks = make(map[uint64]bool)
 
