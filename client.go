@@ -36,7 +36,7 @@ func (ck *Clerk) Lock(lockname uint64) bool {
 			if reply.OK {
 				break
 			}
-			args.Seq = ck.seq
+	        args := &LockArgs{Lockname: lockname, CID: ck.cid, Seq: ck.seq}
 			ck.seq = ck.seq + 1
 		}
 	}
