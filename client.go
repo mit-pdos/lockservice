@@ -22,7 +22,7 @@ func MakeClerk(primary *LockServer, cid uint64) *Clerk {
 // waits until the lock service grants us the lock
 //
 func (ck *Clerk) Lock(lockname uint64) bool {
-	args := &LockArgs{Lockname: lockname, CID: ck.cid, Seq: ck.seq}
+	var args = &LockArgs{Lockname: lockname, CID: ck.cid, Seq: ck.seq}
 	ck.seq = ck.seq + 1
 
 	// prepare the arguments.
@@ -36,7 +36,7 @@ func (ck *Clerk) Lock(lockname uint64) bool {
 			if reply.OK {
 				break
 			}
-	        args := &LockArgs{Lockname: lockname, CID: ck.cid, Seq: ck.seq}
+			args = &LockArgs{Lockname: lockname, CID: ck.cid, Seq: ck.seq}
 			ck.seq = ck.seq + 1
 		}
 	}

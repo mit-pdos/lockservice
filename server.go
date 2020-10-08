@@ -23,7 +23,13 @@ func (ls *LockServer) TryLock(args *LockArgs, reply *LockReply) bool {
 
 	// Check if seqno has been seen, and reply from the cache if so
 	last, ok := ls.lastSeq[args.CID]
+	reply.Stale = false
 	if ok && args.Seq <= last {
+		if args.Seq < last {
+			reply.Stale = true
+			ls.mu.Unlock()
+			return false
+		}
 		reply.OK = ls.lastReply[args.CID]
 		ls.mu.Unlock()
 		return false
@@ -51,7 +57,13 @@ func (ls *LockServer) Unlock(args *UnlockArgs, reply *UnlockReply) bool {
 	ls.mu.Lock()
 
 	last, ok := ls.lastSeq[args.CID]
+	reply.Stale = false
 	if ok && args.Seq <= last {
+		if args.Seq < last {
+			reply.Stale = true
+			ls.mu.Unlock()
+			return false
+		}
 		reply.OK = ls.lastReply[args.CID]
 		ls.mu.Unlock()
 		return false

@@ -18,6 +18,7 @@ type LockArgs struct {
 
 type LockReply struct {
 	OK bool
+	Stale bool
 }
 
 //
@@ -32,8 +33,5 @@ type UnlockArgs struct {
 
 type UnlockReply struct {
 	OK bool
-}
-
-func nondet() bool {
-	return true
+	Stale bool
 }
