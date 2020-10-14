@@ -26,19 +26,21 @@ func (ck *Clerk) Lock(lockname uint64) bool {
 	ck.seq = ck.seq + 1
 
 	// prepare the arguments.
-	var reply LockReply
 
 	// send an RPC request, wait for the reply.
 	var errb = false
+	reply := new(LockReply)
 	for {
-		errb = CallTryLock(ck.primary, args, &reply)
+		errb = CallTryLock(ck.primary, args, reply)
 		if errb == false {
 			if reply.OK {
 				break
 			}
 			args = &LockArgs{Lockname: lockname, CID: ck.cid, Seq: ck.seq}
 			ck.seq = ck.seq + 1
+			continue
 		}
+		continue
 	}
 	return reply.OK
 }
@@ -54,15 +56,15 @@ func (ck *Clerk) Unlock(lockname uint64) bool {
 	args := &UnlockArgs{Lockname: lockname, CID: ck.cid, Seq: ck.seq}
 	ck.seq = ck.seq + 1
 
-	var reply UnlockReply
-
 	// send an RPC request, wait for the reply.
 	var errb bool
+	reply := new(UnlockReply)
 	for {
-		errb = CallUnlock(ck.primary, args, &reply)
+		errb = CallUnlock(ck.primary, args, reply)
 		if errb == false {
 			break
 		}
+		continue
 	}
 
 	return reply.OK

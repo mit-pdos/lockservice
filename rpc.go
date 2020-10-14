@@ -5,9 +5,9 @@ import ()
 // Returns true iff error
 func CallTryLock(srv *LockServer, args *LockArgs, reply *LockReply) bool {
 	go func() {
-		var dummy_reply LockReply
+		dummy_reply := new(LockReply)
 		for {
-			srv.TryLock(args, &dummy_reply)
+			srv.TryLock(args, dummy_reply)
 		}
 	}()
 
@@ -20,9 +20,9 @@ func CallTryLock(srv *LockServer, args *LockArgs, reply *LockReply) bool {
 // Returns true iff error
 func CallUnlock(srv *LockServer, args *UnlockArgs, reply *UnlockReply) bool {
 	go func() {
-		var dummy_reply UnlockReply
+		dummy_reply := new(UnlockReply)
 		for {
-			srv.Unlock(args, &dummy_reply)
+			srv.Unlock(args, dummy_reply)
 		}
 	}()
 
