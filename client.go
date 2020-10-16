@@ -18,27 +18,20 @@ func MakeClerk(primary *LockServer, cid uint64) *Clerk {
 	return ck
 }
 
-//
-// waits until the lock service grants us the lock
-//
-func (ck *Clerk) Lock(lockname uint64) bool {
-	var args = &LockArgs{Lockname: lockname, CID: ck.cid, Seq: ck.seq}
-	ck.seq = ck.seq + 1
-
+func (ck *Clerk) TryLock(lockname uint64) bool {
 	// prepare the arguments.
+	for ck.seq + 1 < ck.seq {
+	}
+	var args = &TryLockArgs{Lockname: lockname, CID: ck.cid, Seq: ck.seq}
+	ck.seq = ck.seq + 1
 
 	// send an RPC request, wait for the reply.
 	var errb = false
-	reply := new(LockReply)
+	reply := new(TryLockReply)
 	for {
 		errb = CallTryLock(ck.primary, args, reply)
 		if errb == false {
-			if reply.OK {
-				break
-			}
-			args = &LockArgs{Lockname: lockname, CID: ck.cid, Seq: ck.seq}
-			ck.seq = ck.seq + 1
-			continue
+			break
 		}
 		continue
 	}
@@ -50,9 +43,10 @@ func (ck *Clerk) Lock(lockname uint64) bool {
 // returns true if the lock was previously held,
 // false otherwise.
 //
-
 func (ck *Clerk) Unlock(lockname uint64) bool {
 	// prepare the arguments.
+	for ck.seq + 1 < ck.seq {
+	}
 	args := &UnlockArgs{Lockname: lockname, CID: ck.cid, Seq: ck.seq}
 	ck.seq = ck.seq + 1
 
@@ -68,4 +62,14 @@ func (ck *Clerk) Unlock(lockname uint64) bool {
 	}
 
 	return reply.OK
+}
+
+// Spins until we have the lock
+func (ck *Clerk) Lock(lockname uint64) bool {
+	for {
+		if ck.TryLock(lockname) {
+			break
+		}
+	}
+	return true
 }

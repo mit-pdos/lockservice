@@ -8,7 +8,7 @@ package lockservice
 // Lock(lockname) returns OK=true if the lock is not held.
 // If it is held, it returns OK=false immediately.
 //
-type LockArgs struct {
+type TryLockArgs struct {
 	// Go's net/rpc requires that these field
 	// names start with upper case letters!
 	Lockname uint64 // lock name
@@ -16,7 +16,7 @@ type LockArgs struct {
 	Seq      uint64
 }
 
-type LockReply struct {
+type TryLockReply struct {
 	OK bool
 	Stale bool
 }

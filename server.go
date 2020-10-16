@@ -18,7 +18,7 @@ type LockServer struct {
 // server Lock RPC handler.
 // returns true iff error
 //
-func (ls *LockServer) TryLock(args *LockArgs, reply *LockReply) bool {
+func (ls *LockServer) TryLock(args *TryLockArgs, reply *TryLockReply) bool {
 	ls.mu.Lock()
 
 	// Check if seqno has been seen, and reply from the cache if so
