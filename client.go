@@ -21,7 +21,7 @@ func MakeClerk(primary *LockServer, cid uint64) *Clerk {
 func (ck *Clerk) TryLock(lockname uint64) bool {
     overflow_guard_incr(ck.seq)
 	// prepare the arguments.
-	var args = &TryLockArgs{Lockname: lockname, CID: ck.cid, Seq: ck.seq}
+	var args = &TryLockRequest{Args: lockname, CID: ck.cid, Seq: ck.seq}
 	ck.seq = ck.seq + 1
 
 	// send an RPC request, wait for the reply.
@@ -34,7 +34,7 @@ func (ck *Clerk) TryLock(lockname uint64) bool {
 		}
 		continue
 	}
-	return reply.OK
+	return reply.Ret
 }
 
 //
@@ -45,7 +45,7 @@ func (ck *Clerk) TryLock(lockname uint64) bool {
 func (ck *Clerk) Unlock(lockname uint64) bool {
     overflow_guard_incr(ck.seq)
 	// prepare the arguments.
-	args := &UnlockArgs{Lockname: lockname, CID: ck.cid, Seq: ck.seq}
+	args := &UnlockRequest{Args: lockname, CID: ck.cid, Seq: ck.seq}
 	ck.seq = ck.seq + 1
 
 	// send an RPC request, wait for the reply.
@@ -59,7 +59,7 @@ func (ck *Clerk) Unlock(lockname uint64) bool {
 		continue
 	}
 
-	return reply.OK
+	return reply.Ret
 }
 
 // Spins until we have the lock

@@ -14,50 +14,55 @@ type LockServer struct {
 	lastReply map[uint64]bool
 }
 
-func (ls *LockServer) tryLock_core(args *TryLockArgs) bool {
-	locked, _ := ls.locks[args.Lockname]
+func (ls *LockServer) tryLock_core(lockname uint64) bool {
+	locked, _ := ls.locks[lockname]
 	if locked {
 		return false
 	} else {
-		ls.locks[args.Lockname] = true
+		ls.locks[lockname] = true
 		return true
 	}
 }
 
-func (ls *LockServer) unlock_core(args *UnlockArgs) bool {
-	locked, _ := ls.locks[args.Lockname]
+func (ls *LockServer) unlock_core(lockname uint64) bool {
+	locked, _ := ls.locks[lockname]
 	if locked {
-		ls.locks[args.Lockname] = false
+		ls.locks[lockname] = false
 		return true
 	} else {
 		return false
 	}
+}
+
+func (ls *LockServer) checkReplyCache(CID uint64, Seq uint64, reply *TryLockReply) bool {
+	last, ok := ls.lastSeq[CID]
+	reply.Stale = false
+	if ok && Seq <= last {
+		if Seq < last {
+			reply.Stale = true
+			return true
+		}
+		reply.Ret = ls.lastReply[CID]
+		return true
+	}
+	ls.lastSeq[CID] = Seq
+	return false
 }
 
 //
 // server Lock RPC handler.
 // returns true iff error
 //
-func (ls *LockServer) TryLock(args *TryLockArgs, reply *TryLockReply) bool {
+func (ls *LockServer) TryLock(req *TryLockRequest, reply *TryLockReply) bool {
 	ls.mu.Lock()
 
-	last, ok := ls.lastSeq[args.CID]
-	reply.Stale = false
-	if ok && args.Seq <= last {
-		if args.Seq < last {
-			reply.Stale = true
-			ls.mu.Unlock()
-			return false
-		}
-		reply.OK = ls.lastReply[args.CID]
+	if ls.checkReplyCache(req.CID, req.Seq, reply) {
 		ls.mu.Unlock()
 		return false
 	}
-	ls.lastSeq[args.CID] = args.Seq
+	reply.Ret = ls.tryLock_core(req.Args)
 
-	reply.OK = ls.tryLock_core(args)
-
-	ls.lastReply[args.CID] = reply.OK
+	ls.lastReply[req.CID] = reply.Ret
 	ls.mu.Unlock()
 	return false
 }
@@ -66,25 +71,16 @@ func (ls *LockServer) TryLock(args *TryLockArgs, reply *TryLockReply) bool {
 // server Unlock RPC handler.
 // returns true iff error
 //
-func (ls *LockServer) Unlock(args *UnlockArgs, reply *UnlockReply) bool {
+func (ls *LockServer) Unlock(req *UnlockRequest, reply *UnlockReply) bool {
 	ls.mu.Lock()
 
-	last, ok := ls.lastSeq[args.CID]
-	reply.Stale = false
-	if ok && args.Seq <= last {
-		if args.Seq < last {
-			reply.Stale = true
-			ls.mu.Unlock()
-			return false
-		}
-		reply.OK = ls.lastReply[args.CID]
+	if ls.checkReplyCache(req.CID, req.Seq, reply) {
 		ls.mu.Unlock()
 		return false
 	}
-	ls.lastSeq[args.CID] = args.Seq
 
-	reply.OK = ls.unlock_core(args)
-	ls.lastReply[args.CID] = reply.OK
+	reply.Ret = ls.unlock_core(req.Args)
+	ls.lastReply[req.CID] = reply.Ret
 	ls.mu.Unlock()
 	return false
 }

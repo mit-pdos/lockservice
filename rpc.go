@@ -3,7 +3,7 @@ package lockservice
 import ()
 
 // Returns true iff server reported error or request "timed out"
-func CallTryLock(srv *LockServer, args *TryLockArgs, reply *TryLockReply) bool {
+func CallTryLock(srv *LockServer, args *TryLockRequest, reply *TryLockReply) bool {
 	go func() {
 		dummy_reply := new(TryLockReply)
 		for {
@@ -18,7 +18,7 @@ func CallTryLock(srv *LockServer, args *TryLockArgs, reply *TryLockReply) bool {
 }
 
 // Returns true iff server reported error or request "timed out"
-func CallUnlock(srv *LockServer, args *UnlockArgs, reply *UnlockReply) bool {
+func CallUnlock(srv *LockServer, args *UnlockRequest, reply *UnlockReply) bool {
 	go func() {
 		dummy_reply := new(UnlockReply)
 		for {
