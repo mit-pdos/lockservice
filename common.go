@@ -35,3 +35,8 @@ type UnlockReply struct {
 	OK bool
 	Stale bool
 }
+
+func overflow_guard_incr(v uint64) {
+	for v + 1 < v {
+	}
+}

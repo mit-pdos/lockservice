@@ -14,6 +14,26 @@ type LockServer struct {
 	lastReply map[uint64]bool
 }
 
+func (ls *LockServer) tryLock_core(args *TryLockArgs) bool {
+	locked, _ := ls.locks[args.Lockname]
+	if locked {
+		return false
+	} else {
+		ls.locks[args.Lockname] = true
+		return true
+	}
+}
+
+func (ls *LockServer) unlock_core(args *UnlockArgs) bool {
+	locked, _ := ls.locks[args.Lockname]
+	if locked {
+		ls.locks[args.Lockname] = false
+		return true
+	} else {
+		return false
+	}
+}
+
 //
 // server Lock RPC handler.
 // returns true iff error
@@ -21,7 +41,6 @@ type LockServer struct {
 func (ls *LockServer) TryLock(args *TryLockArgs, reply *TryLockReply) bool {
 	ls.mu.Lock()
 
-	// Check if seqno has been seen, and reply from the cache if so
 	last, ok := ls.lastSeq[args.CID]
 	reply.Stale = false
 	if ok && args.Seq <= last {
@@ -36,14 +55,8 @@ func (ls *LockServer) TryLock(args *TryLockArgs, reply *TryLockReply) bool {
 	}
 	ls.lastSeq[args.CID] = args.Seq
 
-	locked, _ := ls.locks[args.Lockname]
+	reply.OK = ls.tryLock_core(args)
 
-	if locked {
-		reply.OK = false
-	} else {
-		reply.OK = true
-		ls.locks[args.Lockname] = true
-	}
 	ls.lastReply[args.CID] = reply.OK
 	ls.mu.Unlock()
 	return false
@@ -70,14 +83,7 @@ func (ls *LockServer) Unlock(args *UnlockArgs, reply *UnlockReply) bool {
 	}
 	ls.lastSeq[args.CID] = args.Seq
 
-	locked, _ := ls.locks[args.Lockname]
-
-	if locked {
-		ls.locks[args.Lockname] = false
-		reply.OK = true
-	} else {
-		reply.OK = false
-	}
+	reply.OK = ls.unlock_core(args)
 	ls.lastReply[args.CID] = reply.OK
 	ls.mu.Unlock()
 	return false

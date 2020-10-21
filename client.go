@@ -19,9 +19,8 @@ func MakeClerk(primary *LockServer, cid uint64) *Clerk {
 }
 
 func (ck *Clerk) TryLock(lockname uint64) bool {
+    overflow_guard_incr(ck.seq)
 	// prepare the arguments.
-	for ck.seq + 1 < ck.seq {
-	}
 	var args = &TryLockArgs{Lockname: lockname, CID: ck.cid, Seq: ck.seq}
 	ck.seq = ck.seq + 1
 
@@ -44,9 +43,8 @@ func (ck *Clerk) TryLock(lockname uint64) bool {
 // false otherwise.
 //
 func (ck *Clerk) Unlock(lockname uint64) bool {
+    overflow_guard_incr(ck.seq)
 	// prepare the arguments.
-	for ck.seq + 1 < ck.seq {
-	}
 	args := &UnlockArgs{Lockname: lockname, CID: ck.cid, Seq: ck.seq}
 	ck.seq = ck.seq + 1
 
@@ -70,6 +68,7 @@ func (ck *Clerk) Lock(lockname uint64) bool {
 		if ck.TryLock(lockname) {
 			break
 		}
+		continue
 	}
 	return true
 }
