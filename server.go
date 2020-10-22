@@ -11,26 +11,26 @@ type LockServer struct {
 
 	// each CID's last sequence #
 	lastSeq   map[uint64]uint64
-	lastReply map[uint64]bool
+	lastReply map[uint64]uint64
 }
 
-func (ls *LockServer) tryLock_core(lockname uint64) bool {
+func (ls *LockServer) tryLock_core(lockname uint64) uint64 {
 	locked, _ := ls.locks[lockname]
 	if locked {
-		return false
+		return 0
 	} else {
 		ls.locks[lockname] = true
-		return true
+		return 1
 	}
 }
 
-func (ls *LockServer) unlock_core(lockname uint64) bool {
+func (ls *LockServer) unlock_core(lockname uint64) uint64 {
 	locked, _ := ls.locks[lockname]
 	if locked {
 		ls.locks[lockname] = false
-		return true
+		return 1
 	} else {
-		return false
+		return 0
 	}
 }
 
@@ -90,7 +90,7 @@ func MakeServer() *LockServer {
 	ls.locks = make(map[uint64]bool)
 
 	ls.lastSeq = make(map[uint64]uint64)
-	ls.lastReply = make(map[uint64]bool)
+	ls.lastReply = make(map[uint64]uint64)
 	ls.mu = new(sync.Mutex)
 	return ls
 }

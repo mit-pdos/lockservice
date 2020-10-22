@@ -24,7 +24,7 @@ func tl(t *testing.T, ck *Clerk, lockname uint64, expected bool) {
 	}
 }
 
-func tu(t *testing.T, ck *Clerk, lockname uint64, expected bool) {
+func tu(t *testing.T, ck *Clerk, lockname uint64, expected uint64) {
 	x := ck.Unlock(lockname)
 	if x != expected {
 		t.Fatalf("Unlock(%v) returned %v; expected %v", lockname, x, expected)
@@ -53,7 +53,7 @@ func TestBasicConcurrent(t *testing.T) {
 		tmp = tmp + 1
 		time.Sleep(00 * time.Millisecond)
 		val = tmp
-		tu(t, ck, 0, true)
+		tu(t, ck, 0, 1)
 		fmt.Println("unlocked")
 	}
 

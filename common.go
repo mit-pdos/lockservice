@@ -18,7 +18,7 @@ type TryLockRequest struct {
 
 type TryLockReply struct {
 	Stale bool
-	Ret bool
+	Ret uint64
 }
 
 //
