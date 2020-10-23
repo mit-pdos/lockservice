@@ -26,7 +26,7 @@ func (ck *Clerk) TryLock(lockname uint64) uint64 {
 
 	// send an RPC request, wait for the reply.
 	var errb = false
-	reply := new(TryLockReply)
+	reply := new(RPCReply)
 	for {
 		errb = CallTryLock(ck.primary, args, reply)
 		if errb == false {
@@ -45,12 +45,12 @@ func (ck *Clerk) TryLock(lockname uint64) uint64 {
 func (ck *Clerk) Unlock(lockname uint64) uint64 {
     overflow_guard_incr(ck.seq)
 	// prepare the arguments.
-	args := &UnlockRequest{Args: lockname, CID: ck.cid, Seq: ck.seq}
+	var args = &UnlockRequest{Args: lockname, CID: ck.cid, Seq: ck.seq}
 	ck.seq = ck.seq + 1
 
 	// send an RPC request, wait for the reply.
-	var errb bool
-	reply := new(UnlockReply)
+	var errb = false
+	reply := new(RPCReply)
 	for {
 		errb = CallUnlock(ck.primary, args, reply)
 		if errb == false {

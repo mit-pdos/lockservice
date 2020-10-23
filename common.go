@@ -16,7 +16,7 @@ type TryLockRequest struct {
 	Args uint64 // lock name
 }
 
-type TryLockReply struct {
+type RPCReply struct {
 	Stale bool
 	Ret uint64
 }
@@ -31,7 +31,22 @@ type UnlockRequest struct {
 	Args uint64
 }
 
-type UnlockReply  = TryLockReply 
+type PutArgs struct {
+	Key uint64
+	Value uint64
+}
+
+type PutRequest struct {
+	CID      uint64
+	Seq      uint64
+	Args PutArgs
+}
+
+type GetRequest struct {
+	CID      uint64
+	Seq      uint64
+	Args     uint64
+}
 
 // Call this before doing an increment that has risk of overflowing.
 // If it's going to overflow, this'll loop forever, so the bad addition can never happen
