@@ -85,7 +85,7 @@ func (ls *LockServer) Unlock(req *UnlockRequest, reply *RPCReply) bool {
 	return false
 }
 
-func MakeServer() *LockServer {
+func MakeLockServer() *LockServer {
 	ls := new(LockServer)
 	ls.locks = make(map[uint64]bool)
 

@@ -36,7 +36,7 @@ func TestBasicConcurrent(t *testing.T) {
 
 	runtime.GOMAXPROCS(100)
 
-	p := MakeServer()
+	p := MakeLockServer()
 
 	ck1 := MakeClerk(p, nrand())
 	ck2 := MakeClerk(p, nrand())
