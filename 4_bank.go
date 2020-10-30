@@ -20,6 +20,7 @@ func acquire_two(lck *Clerk, l1 uint64, l2 uint64) {
 		lck.Lock(l2)
 		lck.Lock(l1)
 	}
+	return
 }
 
 func release_two(lck *Clerk, l1 uint64, l2 uint64) {
@@ -30,6 +31,7 @@ func release_two(lck *Clerk, l1 uint64, l2 uint64) {
 		lck.Unlock(l1)
 		lck.Unlock(l2)
 	}
+	return
 }
 
 // Requires that the account numbers are smaller than num_accounts
