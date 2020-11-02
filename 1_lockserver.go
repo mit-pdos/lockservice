@@ -1,20 +1,12 @@
 package lockservice
 
-import (
-	"sync"
-)
-
 type LockServer struct {
-	mu *sync.Mutex
+	sv *RPCServer
 	// for each lock name, is it locked?
 	locks map[uint64]bool
-
-	// each CID's last sequence #
-	lastSeq   map[uint64]uint64
-	lastReply map[uint64]uint64
 }
 
-func (ls *LockServer) tryLock_core(lockname uint64) uint64 {
+func (ls *LockServer) tryLock_core(lockname uint64, dummy uint64) uint64 {
 	locked, _ := ls.locks[lockname]
 	if locked {
 		return 0
@@ -24,7 +16,7 @@ func (ls *LockServer) tryLock_core(lockname uint64) uint64 {
 	}
 }
 
-func (ls *LockServer) unlock_core(lockname uint64) uint64 {
+func (ls *LockServer) unlock_core(lockname uint64, dummy uint64) uint64 {
 	locked, _ := ls.locks[lockname]
 	if locked {
 		ls.locks[lockname] = false
@@ -39,17 +31,7 @@ func (ls *LockServer) unlock_core(lockname uint64) uint64 {
 // returns true iff error
 //
 func (ls *LockServer) TryLock(req *RPCRequest, reply *RPCReply) bool {
-	ls.mu.Lock()
-
-	if CheckReplyCache(ls.lastSeq, ls.lastReply, req.CID, req.Seq, reply) {
-		ls.mu.Unlock()
-		return false
-	}
-	reply.Ret = ls.tryLock_core(req.Arg1)
-
-	ls.lastReply[req.CID] = reply.Ret
-	ls.mu.Unlock()
-	return false
+	return ls.sv.HandleRequest(ls.tryLock_core, req, reply)
 }
 
 //
@@ -57,25 +39,12 @@ func (ls *LockServer) TryLock(req *RPCRequest, reply *RPCReply) bool {
 // returns true iff error
 //
 func (ls *LockServer) Unlock(req *RPCRequest, reply *RPCReply) bool {
-	ls.mu.Lock()
-
-	if CheckReplyCache(ls.lastSeq, ls.lastReply, req.CID, req.Seq, reply) {
-		ls.mu.Unlock()
-		return false
-	}
-
-	reply.Ret = ls.unlock_core(req.Arg1)
-	ls.lastReply[req.CID] = reply.Ret
-	ls.mu.Unlock()
-	return false
+	return ls.sv.HandleRequest(ls.unlock_core, req, reply)
 }
 
 func MakeLockServer() *LockServer {
 	ls := new(LockServer)
 	ls.locks = make(map[uint64]bool)
-
-	ls.lastSeq = make(map[uint64]uint64)
-	ls.lastReply = make(map[uint64]uint64)
-	ls.mu = new(sync.Mutex)
+	ls.sv = MakeRPCServer()
 	return ls
 }
