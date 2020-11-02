@@ -6,6 +6,7 @@ package lockservice
 //
 type KVClerk struct {
 	primary *KVServer
+	client *RPCClient
 	cid     uint64
 	seq     uint64
 }
@@ -13,30 +14,14 @@ type KVClerk struct {
 func MakeKVClerk(primary *KVServer, cid uint64) *KVClerk {
 	ck := new(KVClerk)
 	ck.primary = primary
-	ck.cid = cid
-	ck.seq = 1
+	ck.client = MakeRPCClient(cid)
 	return ck
 }
 
 func (ck *KVClerk) Put(key uint64, val uint64) {
-    overflow_guard_incr(ck.seq)
-	// prepare the arguments.
-	var args = &RPCRequest{Arg1: key, Arg2:val, CID: ck.cid, Seq: ck.seq}
-	ck.seq = ck.seq + 1
-
-	// send an RPC request, wait for the reply.
-	reply := new(RPCReply)
-	for CallRpc(ck.primary.Put, args, reply) == true { }
+	ck.client.MakeRequest(ck.primary.Put, key, val)
 }
 
 func (ck *KVClerk) Get(key uint64) uint64 {
-    overflow_guard_incr(ck.seq)
-	// prepare the arguments.
-	var args = &RPCRequest{Arg1: key, CID: ck.cid, Seq: ck.seq}
-	ck.seq = ck.seq + 1
-
-	// send an RPC request, wait for the reply.
-	reply := new(RPCReply)
-	for CallRpc(ck.primary.Get, args, reply) == true { }
-	return reply.Ret
+	return ck.client.MakeRequest(ck.primary.Get, key, 0)
 }
