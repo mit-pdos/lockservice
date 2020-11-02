@@ -52,7 +52,8 @@ func CheckReplyCache(
 
 // Emulate an RPC call over a lossy network.
 // Returns true iff server reported error or request "timed out".
-func CallRpc(rpc RpcFunc, req *RPCRequest, reply *RPCReply) bool {
+// For the "real thing", this should instead submit a request via the network.
+func RemoteProcedureCall(rpc RpcFunc, req *RPCRequest, reply *RPCReply) bool {
 	go func() {
 		dummy_reply := new(RPCReply)
 		for {
@@ -86,7 +87,7 @@ func (cl *RPCClient) MakeRequest(rpc RpcFunc, args RPCArgs) uint64 {
 	var errb = false
 	reply := new(RPCReply)
 	for {
-		errb = CallRpc(rpc, req, reply)
+		errb = RemoteProcedureCall(rpc, req, reply)
 		if errb == false {
 			break
 		}
