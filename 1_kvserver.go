@@ -23,25 +23,12 @@ func (ks *KVServer) get_core(key uint64) uint64 {
 	return ks.kvs[key]
 }
 
-func (ks *KVServer) checkReplyCache(CID uint64, Seq uint64, reply *RPCReply) bool {
-	last, ok := ks.lastSeq[CID]
-	reply.Stale = false
-	if ok && Seq <= last {
-		if Seq < last {
-			reply.Stale = true
-			return true
-		}
-		reply.Ret = ks.lastReply[CID]
-		return true
-	}
-	ks.lastSeq[CID] = Seq
-	return false
-}
+
 
 func (ks *KVServer) Put(req *RPCRequest, reply *RPCReply) bool {
 	ks.mu.Lock()
 
-	if ks.checkReplyCache(req.CID, req.Seq, reply) {
+	if CheckReplyCache(ks.lastSeq, ks.lastReply, req.CID, req.Seq, reply) {
 		ks.mu.Unlock()
 		return false
 	}
@@ -55,7 +42,7 @@ func (ks *KVServer) Put(req *RPCRequest, reply *RPCReply) bool {
 func (ks *KVServer) Get(req *RPCRequest, reply *RPCReply) bool {
 	ks.mu.Lock()
 
-	if ks.checkReplyCache(req.CID, req.Seq, reply) {
+	if CheckReplyCache(ks.lastSeq, ks.lastReply, req.CID, req.Seq, reply) {
 		ks.mu.Unlock()
 		return false
 	}
