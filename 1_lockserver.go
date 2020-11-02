@@ -53,14 +53,14 @@ func (ls *LockServer) checkReplyCache(CID uint64, Seq uint64, reply *RPCReply) b
 // server Lock RPC handler.
 // returns true iff error
 //
-func (ls *LockServer) TryLock(req *TryLockRequest, reply *RPCReply) bool {
+func (ls *LockServer) TryLock(req *RPCRequest, reply *RPCReply) bool {
 	ls.mu.Lock()
 
 	if ls.checkReplyCache(req.CID, req.Seq, reply) {
 		ls.mu.Unlock()
 		return false
 	}
-	reply.Ret = ls.tryLock_core(req.Args)
+	reply.Ret = ls.tryLock_core(req.Arg1)
 
 	ls.lastReply[req.CID] = reply.Ret
 	ls.mu.Unlock()
@@ -71,7 +71,7 @@ func (ls *LockServer) TryLock(req *TryLockRequest, reply *RPCReply) bool {
 // server Unlock RPC handler.
 // returns true iff error
 //
-func (ls *LockServer) Unlock(req *UnlockRequest, reply *RPCReply) bool {
+func (ls *LockServer) Unlock(req *RPCRequest, reply *RPCReply) bool {
 	ls.mu.Lock()
 
 	if ls.checkReplyCache(req.CID, req.Seq, reply) {
@@ -79,7 +79,7 @@ func (ls *LockServer) Unlock(req *UnlockRequest, reply *RPCReply) bool {
 		return false
 	}
 
-	reply.Ret = ls.unlock_core(req.Args)
+	reply.Ret = ls.unlock_core(req.Arg1)
 	ls.lastReply[req.CID] = reply.Ret
 	ls.mu.Unlock()
 	return false

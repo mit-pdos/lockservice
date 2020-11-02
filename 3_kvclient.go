@@ -21,22 +21,22 @@ func MakeKVClerk(primary *KVServer, cid uint64) *KVClerk {
 func (ck *KVClerk) Put(key uint64, val uint64) {
     overflow_guard_incr(ck.seq)
 	// prepare the arguments.
-	var args = &PutRequest{Args: PutArgs{Key: key, Value:val}, CID: ck.cid, Seq: ck.seq}
+	var args = &RPCRequest{Arg1: key, Arg2:val, CID: ck.cid, Seq: ck.seq}
 	ck.seq = ck.seq + 1
 
 	// send an RPC request, wait for the reply.
 	reply := new(RPCReply)
-	for CallPut(ck.primary, args, reply) == true { }
+	for CallRpc(ck.primary.Put, args, reply) == true { }
 }
 
 func (ck *KVClerk) Get(key uint64) uint64 {
     overflow_guard_incr(ck.seq)
 	// prepare the arguments.
-	var args = &GetRequest{Args: key, CID: ck.cid, Seq: ck.seq}
+	var args = &RPCRequest{Arg1: key, CID: ck.cid, Seq: ck.seq}
 	ck.seq = ck.seq + 1
 
 	// send an RPC request, wait for the reply.
 	reply := new(RPCReply)
-	for CallGet(ck.primary, args, reply) == true { }
+	for CallRpc(ck.primary.Get, args, reply) == true { }
 	return reply.Ret
 }

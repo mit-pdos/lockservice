@@ -14,8 +14,8 @@ type KVServer struct {
 	lastReply map[uint64]uint64
 }
 
-func (ks *KVServer) put_core(kv PutArgs) uint64 {
-	ks.kvs[kv.Key] = kv.Value
+func (ks *KVServer) put_core(key uint64, value uint64) uint64 {
+	ks.kvs[key] = value
 	return 0
 }
 
@@ -38,21 +38,21 @@ func (ks *KVServer) checkReplyCache(CID uint64, Seq uint64, reply *RPCReply) boo
 	return false
 }
 
-func (ks *KVServer) Put(req *PutRequest, reply *RPCReply) bool {
+func (ks *KVServer) Put(req *RPCRequest, reply *RPCReply) bool {
 	ks.mu.Lock()
 
 	if ks.checkReplyCache(req.CID, req.Seq, reply) {
 		ks.mu.Unlock()
 		return false
 	}
-	reply.Ret = ks.put_core(req.Args)
+	reply.Ret = ks.put_core(req.Arg1, req.Arg2)
 
 	ks.lastReply[req.CID] = reply.Ret
 	ks.mu.Unlock()
 	return false
 }
 
-func (ks *KVServer) Get(req *GetRequest, reply *RPCReply) bool {
+func (ks *KVServer) Get(req *RPCRequest, reply *RPCReply) bool {
 	ks.mu.Lock()
 
 	if ks.checkReplyCache(req.CID, req.Seq, reply) {
@@ -60,7 +60,7 @@ func (ks *KVServer) Get(req *GetRequest, reply *RPCReply) bool {
 		return false
 	}
 
-	reply.Ret = ks.get_core(req.Args)
+	reply.Ret = ks.get_core(req.Arg1)
 	ks.lastReply[req.CID] = reply.Ret
 	ks.mu.Unlock()
 	return false

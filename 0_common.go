@@ -4,48 +4,17 @@ package lockservice
 // RPC definitions for a simple lock service.
 //
 
-//
-// TryLock(lockname) returns OK=true if the lock is not held.
-// If it is held, it returns OK=false immediately.
-//
-type TryLockRequest struct {
+type RPCRequest struct {
 	// Go's net/rpc requires that these field
 	// names start with upper case letters!
 	CID      uint64
 	Seq      uint64
-	Args uint64 // lock name
+	Arg1 uint64
+	Arg2 uint64
 }
-
 type RPCReply struct {
 	Stale bool
 	Ret uint64
-}
-
-//
-// Unlock(lockname) returns OK=true if the lock was held.
-// It returns OK=false if the lock was not held.
-//
-type UnlockRequest struct {
-	CID      uint64
-	Seq      uint64
-	Args uint64
-}
-
-type PutArgs struct {
-	Key uint64
-	Value uint64
-}
-
-type PutRequest struct {
-	CID      uint64
-	Seq      uint64
-	Args PutArgs
-}
-
-type GetRequest struct {
-	CID      uint64
-	Seq      uint64
-	Args     uint64
 }
 
 // Call this before doing an increment that has risk of overflowing.
