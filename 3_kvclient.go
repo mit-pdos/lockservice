@@ -23,5 +23,5 @@ func (ck *KVClerk) Put(key uint64, val uint64) {
 }
 
 func (ck *KVClerk) Get(key uint64) uint64 {
-	return ck.client.MakeRequest(ck.primary.Get, RPCArgs{Arg1:key})
+	return ck.client.MakeRequest(ck.primary.Get, RPCArgs{Arg1:key, Arg2:0})
 }
