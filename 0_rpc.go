@@ -8,13 +8,17 @@ import (
 // Common definitions for our RPC layer
 //
 
+type RPCArgs struct {
+	Arg1 uint64
+	Arg2 uint64
+}
+
 type RPCRequest struct {
 	// Go's net/rpc requires that these field
 	// names start with upper case letters!
 	CID      uint64
 	Seq      uint64
-	Arg1 uint64
-	Arg2 uint64
+	Args     RPCArgs
 }
 type RPCReply struct {
 	Stale bool
@@ -23,7 +27,7 @@ type RPCReply struct {
 
 type RpcFunc func(*RPCRequest, *RPCReply) bool
 
-type RpcCoreHandler func(arg1 uint64, arg2 uint64) uint64
+type RpcCoreHandler func(args RPCArgs) uint64
 
 func CheckReplyCache(
 	lastSeq map[uint64]uint64,
@@ -72,17 +76,17 @@ func MakeRPCClient(cid uint64) *RPCClient {
 	return &RPCClient{cid: cid, seq: 1}
 }
 
-func (cl *RPCClient) MakeRequest(rpc RpcFunc, arg1 uint64, arg2 uint64) uint64 {
+func (cl *RPCClient) MakeRequest(rpc RpcFunc, args RPCArgs) uint64 {
 	overflow_guard_incr(cl.seq)
 	// prepare the arguments.
-	var args = &RPCRequest{Arg1: arg1, Arg2: arg2, CID: cl.cid, Seq: cl.seq}
+	var req = &RPCRequest{Args: args, CID: cl.cid, Seq: cl.seq}
 	cl.seq = cl.seq + 1
 
 	// send an RPC request, wait for the reply.
 	var errb = false
 	reply := new(RPCReply)
 	for {
-		errb = CallRpc(rpc, args, reply)
+		errb = CallRpc(rpc, req, reply)
 		if errb == false {
 			break
 		}
@@ -117,7 +121,7 @@ func (sv *RPCServer) HandleRequest(core RpcCoreHandler, req *RPCRequest, reply *
 		return false
 	}
 
-	reply.Ret = core(req.Arg1, req.Arg2)
+	reply.Ret = core(req.Args)
 	sv.lastReply[req.CID] = reply.Ret
 	sv.mu.Unlock()
 	return false

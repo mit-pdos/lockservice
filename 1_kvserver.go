@@ -6,13 +6,13 @@ type KVServer struct {
 	kvs map[uint64]uint64
 }
 
-func (ks *KVServer) put_core(key uint64, value uint64) uint64 {
-	ks.kvs[key] = value
+func (ks *KVServer) put_core(args RPCArgs) uint64 {
+	ks.kvs[args.Arg1] = args.Arg2
 	return 0
 }
 
-func (ks *KVServer) get_core(key uint64, dummy uint64) uint64 {
-	return ks.kvs[key]
+func (ks *KVServer) get_core(args RPCArgs) uint64 {
+	return ks.kvs[args.Arg1]
 }
 
 
