@@ -6,8 +6,8 @@ type LockServer struct {
 	locks map[uint64]bool
 }
 
-func (ls *LockServer) tryLock_core(args RPCArgs) uint64 {
-	lockname := args.Arg1
+func (ls *LockServer) tryLock_core(args RPCVals) uint64 {
+	lockname := args.U64_1
 	locked, _ := ls.locks[lockname]
 	if locked {
 		return 0
@@ -17,8 +17,8 @@ func (ls *LockServer) tryLock_core(args RPCArgs) uint64 {
 	}
 }
 
-func (ls *LockServer) unlock_core(args RPCArgs) uint64 {
-	lockname := args.Arg1
+func (ls *LockServer) unlock_core(args RPCVals) uint64 {
+	lockname := args.U64_1
 	locked, _ := ls.locks[lockname]
 	if locked {
 		ls.locks[lockname] = false

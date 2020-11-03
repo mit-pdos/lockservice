@@ -8,16 +8,16 @@ import (
 // Common definitions for our RPC layer
 //
 
-type RPCArgs struct {
-	Arg1 uint64
-	Arg2 uint64
+type RPCVals struct {
+	U64_1 uint64
+	U64_2 uint64
 }
 
-func MakeRPCArgsU64(arg1 uint64) RPCArgs {
-	return RPCArgs { Arg1: arg1, Arg2: 0 }
+func MakeRPCValsU64(arg1 uint64) RPCVals {
+	return RPCVals { U64_1: arg1, U64_2: 0 }
 }
-func MakeRPCArgsU64U64(arg1 uint64, arg2 uint64) RPCArgs {
-	return RPCArgs { Arg1: arg1, Arg2: arg2 }
+func MakeRPCValsU64U64(arg1 uint64, arg2 uint64) RPCVals {
+	return RPCVals { U64_1: arg1, U64_2: arg2 }
 }
 
 type RPCRequest struct {
@@ -25,7 +25,7 @@ type RPCRequest struct {
 	// names start with upper case letters!
 	CID      uint64
 	Seq      uint64
-	Args     RPCArgs
+	Args     RPCVals
 }
 type RPCReply struct {
 	Stale bool
@@ -34,7 +34,7 @@ type RPCReply struct {
 
 type RpcFunc func(*RPCRequest, *RPCReply) bool
 
-type RpcCoreHandler func(args RPCArgs) uint64
+type RpcCoreHandler func(args RPCVals) uint64
 
 func CheckReplyCache(
 	lastSeq map[uint64]uint64,
@@ -84,7 +84,7 @@ func MakeRPCClient(cid uint64) *RPCClient {
 	return &RPCClient{cid: cid, seq: 1}
 }
 
-func (cl *RPCClient) MakeRequest(rpc RpcFunc, args RPCArgs) uint64 {
+func (cl *RPCClient) MakeRequest(rpc RpcFunc, args RPCVals) uint64 {
 	overflow_guard_incr(cl.seq)
 	// prepare the arguments.
 	var req = &RPCRequest{Args: args, CID: cl.cid, Seq: cl.seq}
