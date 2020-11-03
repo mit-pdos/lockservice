@@ -13,6 +13,13 @@ type RPCArgs struct {
 	Arg2 uint64
 }
 
+func MakeRPCArgsU64(arg1 uint64) RPCArgs {
+	return RPCArgs { Arg1: arg1, Arg2: 0 }
+}
+func MakeRPCArgsU64U64(arg1 uint64, arg2 uint64) RPCArgs {
+	return RPCArgs { Arg1: arg1, Arg2: arg2 }
+}
+
 type RPCRequest struct {
 	// Go's net/rpc requires that these field
 	// names start with upper case letters!
