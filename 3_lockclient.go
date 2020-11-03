@@ -17,7 +17,7 @@ func MakeClerk(primary *LockServer, cid uint64) *Clerk {
 }
 
 func (ck *Clerk) TryLock(lockname uint64) bool {
-	return ck.client.MakeRequest(ck.primary.TryLock, MakeRPCValsU64(lockname)) != 0
+	return ck.client.MakeRequest(ck.primary.TryLock, RPCVals{U64_1:lockname}) != 0
 }
 
 //
@@ -26,7 +26,7 @@ func (ck *Clerk) TryLock(lockname uint64) bool {
 // false otherwise.
 //
 func (ck *Clerk) Unlock(lockname uint64) bool {
-	return ck.client.MakeRequest(ck.primary.Unlock, MakeRPCValsU64(lockname)) != 0
+	return ck.client.MakeRequest(ck.primary.Unlock, RPCVals{U64_1:lockname}) != 0
 }
 
 // Spins until we have the lock

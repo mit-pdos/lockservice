@@ -19,9 +19,9 @@ func MakeKVClerk(primary *KVServer, cid uint64) *KVClerk {
 }
 
 func (ck *KVClerk) Put(key uint64, val uint64) {
-	ck.client.MakeRequest(ck.primary.Put, MakeRPCValsU64U64(key, val))
+	ck.client.MakeRequest(ck.primary.Put, RPCVals{U64_1: key, U64_2: val})
 }
 
 func (ck *KVClerk) Get(key uint64) uint64 {
-	return ck.client.MakeRequest(ck.primary.Get, MakeRPCValsU64(key))
+	return ck.client.MakeRequest(ck.primary.Get, RPCVals{U64_1:key})
 }
