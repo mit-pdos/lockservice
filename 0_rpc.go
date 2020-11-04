@@ -29,7 +29,7 @@ type RpcFunc func(*RPCRequest, *RPCReply) bool
 
 type RpcCoreHandler func(args RPCVals) uint64
 
-func CheckReplyCache(
+func CheckReplyTable(
 	lastSeq map[uint64]uint64,
 	lastReply map[uint64]uint64,
 	CID uint64,
@@ -97,7 +97,7 @@ func (cl *RPCClient) MakeRequest(rpc RpcFunc, args RPCVals) uint64 {
 }
 
 // Common code for RPC servers: locking and handling of stale and redundant requests through
-// reply "cache".
+// the reply table.
 type RPCServer struct {
 	mu *sync.Mutex
 
@@ -117,7 +117,7 @@ func MakeRPCServer() *RPCServer {
 func (sv *RPCServer) HandleRequest(core RpcCoreHandler, req *RPCRequest, reply *RPCReply) bool {
 	sv.mu.Lock()
 
-	if CheckReplyCache(sv.lastSeq, sv.lastReply, req.CID, req.Seq, reply) {
+	if CheckReplyTable(sv.lastSeq, sv.lastReply, req.CID, req.Seq, reply) {
 		sv.mu.Unlock()
 		return false
 	}
