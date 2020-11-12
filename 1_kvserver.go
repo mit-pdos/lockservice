@@ -1,77 +1,33 @@
 package lockservice
 
-import (
-	"sync"
-)
-
 type KVServer struct {
-	mu *sync.Mutex
+	sv *RPCServer
 	// for each lock name, is it locked?
 	kvs map[uint64]uint64
-
-	// each CID's last sequence #
-	lastSeq   map[uint64]uint64
-	lastReply map[uint64]uint64
 }
 
-func (ks *KVServer) put_core(kv PutArgs) uint64 {
-	ks.kvs[kv.Key] = kv.Value
+func (ks *KVServer) put_core(args RPCVals) uint64 {
+	ks.kvs[args.U64_1] = args.U64_2
 	return 0
 }
 
-func (ks *KVServer) get_core(key uint64) uint64 {
-	return ks.kvs[key]
+func (ks *KVServer) get_core(args RPCVals) uint64 {
+	return ks.kvs[args.U64_1]
 }
 
-func (ks *KVServer) checkReplyCache(CID uint64, Seq uint64, reply *RPCReply) bool {
-	last, ok := ks.lastSeq[CID]
-	reply.Stale = false
-	if ok && Seq <= last {
-		if Seq < last {
-			reply.Stale = true
-			return true
-		}
-		reply.Ret = ks.lastReply[CID]
-		return true
-	}
-	ks.lastSeq[CID] = Seq
-	return false
+
+
+func (ks *KVServer) Put(req *RPCRequest, reply *RPCReply) bool {
+	return ks.sv.HandleRequest(ks.put_core, req, reply)
 }
 
-func (ks *KVServer) Put(req *PutRequest, reply *RPCReply) bool {
-	ks.mu.Lock()
-
-	if ks.checkReplyCache(req.CID, req.Seq, reply) {
-		ks.mu.Unlock()
-		return false
-	}
-	reply.Ret = ks.put_core(req.Args)
-
-	ks.lastReply[req.CID] = reply.Ret
-	ks.mu.Unlock()
-	return false
-}
-
-func (ks *KVServer) Get(req *GetRequest, reply *RPCReply) bool {
-	ks.mu.Lock()
-
-	if ks.checkReplyCache(req.CID, req.Seq, reply) {
-		ks.mu.Unlock()
-		return false
-	}
-
-	reply.Ret = ks.get_core(req.Args)
-	ks.lastReply[req.CID] = reply.Ret
-	ks.mu.Unlock()
-	return false
+func (ks *KVServer) Get(req *RPCRequest, reply *RPCReply) bool {
+	return ks.sv.HandleRequest(ks.get_core, req, reply)
 }
 
 func MakeKVServer() *KVServer {
 	ks := new(KVServer)
 	ks.kvs = make(map[uint64]uint64)
-
-	ks.lastSeq = make(map[uint64]uint64)
-	ks.lastReply = make(map[uint64]uint64)
-	ks.mu = new(sync.Mutex)
+	ks.sv = MakeRPCServer()
 	return ks
 }
