@@ -80,7 +80,7 @@ func MakeRPCClient(cid uint64) *RPCClient {
 func (cl *RPCClient) MakeRequest(rpc RpcFunc, args RPCVals) uint64 {
 	overflow_guard_incr(cl.seq)
 	// prepare the arguments.
-	var req = &RPCRequest{Args: args, CID: cl.cid, Seq: cl.seq}
+	req := &RPCRequest{Args: args, CID: cl.cid, Seq: cl.seq}
 	cl.seq = cl.seq + 1
 
 	// send an RPC request, wait for the reply.

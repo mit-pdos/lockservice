@@ -33,7 +33,10 @@ func (ls *LockServer) unlock_core(args RPCVals) uint64 {
 // returns true iff error
 //
 func (ls *LockServer) TryLock(req *RPCRequest, reply *RPCReply) bool {
-	return ls.sv.HandleRequest(ls.tryLock_core, req, reply)
+	f := func(args RPCVals) uint64 {
+		return ls.tryLock_core(args)
+	}
+	return ls.sv.HandleRequest(f, req, reply)
 }
 
 //
@@ -41,7 +44,10 @@ func (ls *LockServer) TryLock(req *RPCRequest, reply *RPCReply) bool {
 // returns true iff error
 //
 func (ls *LockServer) Unlock(req *RPCRequest, reply *RPCReply) bool {
-	return ls.sv.HandleRequest(ls.unlock_core, req, reply)
+	f := func(args RPCVals) uint64 {
+		return ls.unlock_core(args)
+	}
+	return ls.sv.HandleRequest(f, req, reply)
 }
 
 func MakeLockServer() *LockServer {
