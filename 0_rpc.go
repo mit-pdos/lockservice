@@ -29,6 +29,8 @@ type RpcFunc func(*RPCRequest, *RPCReply) bool
 
 type RpcCoreHandler func(args RPCVals) uint64
 
+type RpcCorePersister func()
+
 func CheckReplyTable(
 	lastSeq map[uint64]uint64,
 	lastReply map[uint64]uint64,
@@ -114,7 +116,7 @@ func MakeRPCServer() *RPCServer {
 	return sv
 }
 
-func (sv *RPCServer) HandleRequest(core RpcCoreHandler, req *RPCRequest, reply *RPCReply) bool {
+func (sv *RPCServer) HandleRequest(core RpcCoreHandler, makeDurable RpcCorePersister, req *RPCRequest, reply *RPCReply) bool {
 	sv.mu.Lock()
 
 	if CheckReplyTable(sv.lastSeq, sv.lastReply, req.CID, req.Seq, reply) {
@@ -124,6 +126,9 @@ func (sv *RPCServer) HandleRequest(core RpcCoreHandler, req *RPCRequest, reply *
 
 	reply.Ret = core(req.Args)
 	sv.lastReply[req.CID] = reply.Ret
+
+	makeDurable()
+
 	sv.mu.Unlock()
 	return false
 }

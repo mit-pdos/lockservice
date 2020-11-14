@@ -28,6 +28,18 @@ func (ls *LockServer) unlock_core(args RPCVals) uint64 {
 	}
 }
 
+// For now, there is only one lock server in the whole world
+func WriteDurableLockServer(ks *LockServer) {
+	// TODO: implement persister
+	return
+}
+
+func ReadDurableLockServer() *LockServer {
+	// TODO: implement persister
+	return nil
+}
+
+
 //
 // server Lock RPC handler.
 // returns true iff error
@@ -36,7 +48,12 @@ func (ls *LockServer) TryLock(req *RPCRequest, reply *RPCReply) bool {
 	f := func(args RPCVals) uint64 {
 		return ls.tryLock_core(args)
 	}
-	return ls.sv.HandleRequest(f, req, reply)
+	fdur := func() {
+		WriteDurableLockServer(ls)
+	}
+	r := ls.sv.HandleRequest(f, fdur, req, reply)
+	WriteDurableLockServer(ls)
+	return r
 }
 
 //
@@ -47,10 +64,20 @@ func (ls *LockServer) Unlock(req *RPCRequest, reply *RPCReply) bool {
 	f := func(args RPCVals) uint64 {
 		return ls.unlock_core(args)
 	}
-	return ls.sv.HandleRequest(f, req, reply)
+	fdur := func() {
+		WriteDurableLockServer(ls)
+	}
+	r := ls.sv.HandleRequest(f, fdur, req, reply)
+	WriteDurableLockServer(ls)
+	return r
 }
 
 func MakeLockServer() *LockServer {
+	ls_old := ReadDurableLockServer()
+	if ls_old != nil {
+		return ls_old
+	}
+
 	ls := new(LockServer)
 	ls.locks = make(map[uint64]bool)
 	ls.sv = MakeRPCServer()
