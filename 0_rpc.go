@@ -120,14 +120,12 @@ func (sv *RPCServer) HandleRequest(core RpcCoreHandler, makeDurable RpcCorePersi
 	sv.mu.Lock()
 
 	if CheckReplyTable(sv.lastSeq, sv.lastReply, req.CID, req.Seq, reply) {
-		sv.mu.Unlock()
-		return false
+	} else {
+		reply.Ret = core(req.Args)
+		sv.lastReply[req.CID] = reply.Ret
+
+		makeDurable()
 	}
-
-	reply.Ret = core(req.Args)
-	sv.lastReply[req.CID] = reply.Ret
-
-	makeDurable()
 
 	sv.mu.Unlock()
 	return false
