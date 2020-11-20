@@ -18,17 +18,15 @@ func (ks *KVServer) get_core(args RPCVals) uint64 {
 
 
 func (ks *KVServer) Put(req *RPCRequest, reply *RPCReply) bool {
-	f := func(args RPCVals) uint64 {
+	return ks.sv.HandleRequest(func(args RPCVals) uint64 {
 		return ks.put_core(args)
-	}
-	return ks.sv.HandleRequest(f, req, reply)
+	}, req, reply)
 }
 
 func (ks *KVServer) Get(req *RPCRequest, reply *RPCReply) bool {
-	f := func(args RPCVals) uint64 {
+	return ks.sv.HandleRequest(func(args RPCVals) uint64 {
 		return ks.get_core(args)
-	}
-	return ks.sv.HandleRequest(f, req, reply)
+	}, req, reply)
 }
 
 func MakeKVServer() *KVServer {
