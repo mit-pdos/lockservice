@@ -60,7 +60,7 @@ func (is *IncrServer) increment_core(seq uint64, args RPCVals) uint64 {
 	}
 
 	// XXX: This would be annoying to prove correct because the kck.Get() will
-	// blindly increment
+	// blindly do a get
 	// Basically, if we ever crash, we need to give pack the P to our caller;
 	// that is, we need the kv ptsto prop. To get this, we would need to
 	// "downgrade" the RPCRequestInvariant of the Get() that we're trying to do
@@ -68,6 +68,7 @@ func (is *IncrServer) increment_core(seq uint64, args RPCVals) uint64 {
 	oldv = is.kck.Get(key)
 
 	enc = marshal.NewEnc(8)
+	enc.PutInt(oldv)
 	ffi.Write(filename, enc.Finish())
 
 about_to_put:
