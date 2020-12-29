@@ -73,6 +73,12 @@ func (is *IncrServer) increment_core(seq uint64, args RPCVals) uint64 {
 
 about_to_put:
 	is.kck.Put(key, oldv+1)
+	// XXX: this could require stealing the precondition from a previous Put
+	// request, or getting the postcondition out of a previous Put request. We
+	// might be able to "recursively" do that by just putting a fupd in front of
+	// the usual precondition.
+	//
+	// own proc_token -* clerk.cid fm[lseq]>= clerk.seq ={T}=* own proc_token * (key [kv]|-> _)
 	return 0
 }
 
