@@ -1,8 +1,7 @@
 package lockservice
 
 import (
-	ffi "./grove_ffi"
-	"fmt"
+	"./grove_ffi"
 	"github.com/tchajed/marshal"
 )
 
@@ -53,25 +52,24 @@ func (is *IncrServer) increment_core(seq uint64, args RPCVals) uint64 {
 	var oldv uint64
 	var enc marshal.Enc
 
-	filename := "incr_request_" + fmt.Sprint(seq) + "_oldv"
-	if content := ffi.Read(filename); len(content) > 0 {
-		oldv = marshal.NewDec(ffi.Read(filename)).GetInt()
-		goto about_to_put
+	filename := "incr_request_" + grove_ffi.U64ToString(seq) + "_oldv"
+	content := grove_ffi.Read(filename)
+	if len(content) > 0 {
+		oldv = marshal.NewDec(grove_ffi.Read(filename)).GetInt()
+	} else {
+		// XXX: This would be annoying to prove correct because the kck.Get() will
+		// blindly do a get
+		// Basically, if we ever crash, we need to give pack the P to our caller;
+		// that is, we need the kv ptsto prop. To get this, we would need to
+		// "downgrade" the RPCRequestInvariant of the Get() that we're trying to do
+		// to have Pre=True and Post=True.
+		oldv = is.kck.Get(key)
+
+		enc = marshal.NewEnc(8)
+		enc.PutInt(oldv)
+		grove_ffi.Write(filename, enc.Finish())
 	}
 
-	// XXX: This would be annoying to prove correct because the kck.Get() will
-	// blindly do a get
-	// Basically, if we ever crash, we need to give pack the P to our caller;
-	// that is, we need the kv ptsto prop. To get this, we would need to
-	// "downgrade" the RPCRequestInvariant of the Get() that we're trying to do
-	// to have Pre=True and Post=True.
-	oldv = is.kck.Get(key)
-
-	enc = marshal.NewEnc(8)
-	enc.PutInt(oldv)
-	ffi.Write(filename, enc.Finish())
-
-about_to_put:
 	is.kck.Put(key, oldv+1)
 	// XXX: this could require stealing the precondition from a previous Put
 	// request, or getting the postcondition out of a previous Put request. We

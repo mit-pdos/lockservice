@@ -1,7 +1,7 @@
 package lockservice
 
 import (
-	ffi "./grove_ffi"
+	"./grove_ffi"
 	"github.com/tchajed/marshal"
 	"fmt"
 )
@@ -84,13 +84,14 @@ func (is *IncrProxyServer) proxy_increment_core(seq uint64, args RPCVals) uint64
 	filename := "procy_incr_request_" + fmt.Sprint(seq)
 	var ck ShortTermIncrClerk
 
-	if content := ffi.Read(filename); len(content) > 0 {
+	content := grove_ffi.Read(filename)
+	if len(content) > 0 {
 		ck = DecodeShortTermIncrClerk(is.incrserver, content)
 	} else {
 		ck = MakeFreshIncrClerk()
 		ck.PrepareRequest(args)
-		content = EncodeShortTermIncrClerk(&ck)
-		ffi.Write(filename, content)
+		content := EncodeShortTermIncrClerk(&ck) // this shadows the other content variable
+		grove_ffi.Write(filename, content)
 	}
 
 	ck.MakePreparedRequest()

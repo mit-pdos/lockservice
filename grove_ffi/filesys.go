@@ -3,6 +3,7 @@ import "os"
 import "path/filepath"
 import "io/ioutil"
 import "log"
+import "fmt"
 
 // filesystem+network library
 const DataDir = "durable"
@@ -35,4 +36,9 @@ func Read(filename string) []byte {
 	content, err := ioutil.ReadFile(filepath.Join(DataDir, filename))
 	panic_if_err(err)
 	return content
+}
+
+// injective function u64 -> str
+func U64ToString(i uint64) string {
+	return fmt.Sprint(i)
 }

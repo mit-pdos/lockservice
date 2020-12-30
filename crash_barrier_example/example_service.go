@@ -4,7 +4,6 @@ import (
 	ffi "../grove_ffi"
 	"github.com/tchajed/marshal"
 	"sync"
-	"fmt"
 )
 
 const Filename = "crash_barrier_example_counter"
@@ -41,7 +40,7 @@ type State struct {
 
 func crash_op_start(id uint64) State {
 	s := State{id:id, pc:0}
-	filename := "state_" + fmt.Sprint(s.id)
+	filename := "state_" + ffi.U64ToString(s.id)
 	c := ffi.Read(filename)
 	if len(c) == 0 {
 		return s
@@ -53,7 +52,7 @@ func crash_op_start(id uint64) State {
 }
 
 func (s *State) crash_barrier(pc uint64) {
-	filename := "state_" + fmt.Sprint(s.id)
+	filename := "state_" + ffi.U64ToString(s.id)
 	s.pc = pc
 	e := marshal.NewEnc(16)
 	e.PutInt(s.pc)
