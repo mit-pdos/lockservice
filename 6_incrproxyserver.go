@@ -3,7 +3,6 @@ package lockservice
 import (
 	"./grove_ffi"
 	"github.com/tchajed/marshal"
-	"fmt"
 )
 
 type IncrProxyServer struct {
@@ -81,7 +80,7 @@ func MakeFreshIncrClerk() ShortTermIncrClerk {
 }
 
 func (is *IncrProxyServer) proxy_increment_core(seq uint64, args RPCVals) uint64 {
-	filename := "procy_incr_request_" + fmt.Sprint(seq)
+	filename := "procy_incr_request_" + grove_ffi.U64ToString(seq)
 	var ck ShortTermIncrClerk
 
 	content := grove_ffi.Read(filename)

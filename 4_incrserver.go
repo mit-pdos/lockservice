@@ -80,6 +80,13 @@ func (is *IncrServer) increment_core(seq uint64, args RPCVals) uint64 {
 	return 0
 }
 
+// For now, there is only one kv server in the whole world
+func WriteDurableIncrServer(ks *IncrServer) {
+	// TODO: implement persister
+	return
+}
+
+
 func (is *IncrServer) Increment(req *RPCRequest, reply *RPCReply) bool {
 	is.sv.mu.Lock()
 
@@ -94,12 +101,6 @@ func (is *IncrServer) Increment(req *RPCRequest, reply *RPCReply) bool {
 
 	is.sv.mu.Unlock()
 	return false
-}
-
-// For now, there is only one kv server in the whole world
-func WriteDurableIncrServer(ks *IncrServer) {
-	// TODO: implement persister
-	return
 }
 
 func ReadDurableIncrServer() *IncrServer {
