@@ -34,8 +34,7 @@ func Write(filename string, content []byte) {
 
 // reads the contents of the file filename
 func Read(filename string) []byte {
-	content, err := ioutil.ReadFile(filepath.Join(DataDir, filename))
-	panic_if_err(err)
+	content, _ := ioutil.ReadFile(filepath.Join(DataDir, filename))
 	return content
 }
 
