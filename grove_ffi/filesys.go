@@ -1,4 +1,5 @@
 package grove_ffi
+
 import "os"
 import "path/filepath"
 import "io/ioutil"
@@ -17,11 +18,11 @@ func panic_if_err(err error) {
 // crash-atomically writes content to the file with name filename
 func Write(filename string, content []byte) {
 	_ = os.Mkdir("tmp", 0755)
-	file, err := ioutil.TempFile("tmp", filename+ "_*")
+	file, err := ioutil.TempFile("tmp", filename+"_*")
 	panic_if_err(err)
 	defer os.Remove(file.Name())
 
-	for i := 0; i < len(content) ; {
+	for i := 0; i < len(content); {
 		bytesWritten, err := file.Write(content[i:])
 		panic_if_err(err)
 		i += bytesWritten

@@ -39,7 +39,6 @@ func ReadDurableLockServer() *LockServer {
 	return nil
 }
 
-
 //
 // server Lock RPC handler.
 // returns true iff error

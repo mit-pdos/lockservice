@@ -7,6 +7,7 @@ import (
 )
 
 const Filename = "crash_barrier_example_counter"
+
 var mu sync.Mutex // synchronize access to the counter
 
 // id is a unique identifier for this invocation of incr_unsafe.  After crash
@@ -33,13 +34,13 @@ func incr_unsafe(id uint64) uint64 {
 }
 
 type State struct {
-	id uint64
+	id  uint64
 	tmp uint64
-	pc uint64
+	pc  uint64
 }
 
 func crash_op_start(id uint64) State {
-	s := State{id:id, pc:0}
+	s := State{id: id, pc: 0}
 	filename := "state_" + ffi.U64ToString(s.id)
 	c := ffi.Read(filename)
 	if len(c) == 0 {

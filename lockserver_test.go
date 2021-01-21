@@ -4,8 +4,8 @@ import (
 	crand "crypto/rand"
 	"fmt"
 	"math/big"
-	"sync"
 	"runtime"
+	"sync"
 	"testing"
 	"time"
 )

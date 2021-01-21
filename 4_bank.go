@@ -6,14 +6,14 @@ type Bank struct {
 }
 
 type BankClerk struct {
-	lck *Clerk
+	lck  *Clerk
 	kvck *KVClerk
 	acc1 uint64
 	acc2 uint64
 }
 
 func acquire_two(lck *Clerk, l1 uint64, l2 uint64) {
-	if (l1 < l2) {
+	if l1 < l2 {
 		lck.Lock(l1)
 		lck.Lock(l2)
 	} else {
@@ -24,7 +24,7 @@ func acquire_two(lck *Clerk, l1 uint64, l2 uint64) {
 }
 
 func release_two(lck *Clerk, l1 uint64, l2 uint64) {
-	if (l1 < l2) {
+	if l1 < l2 {
 		lck.Unlock(l2)
 		lck.Unlock(l1)
 	} else {
@@ -40,13 +40,13 @@ func (bck *BankClerk) transfer_internal(acc_from uint64, acc_to uint64, amount u
 	acquire_two(bck.lck, acc_from, acc_to)
 	old_amount := bck.kvck.Get(acc_from)
 	if old_amount >= amount {
-		bck.kvck.Put(acc_from, old_amount - amount)
-		bck.kvck.Put(acc_to, bck.kvck.Get(acc_to) + amount)
+		bck.kvck.Put(acc_from, old_amount-amount)
+		bck.kvck.Put(acc_to, bck.kvck.Get(acc_to)+amount)
 	}
 	release_two(bck.lck, acc_from, acc_to)
 }
 
-func (bck *BankClerk) SimpleTransfer(amount uint64) {	
+func (bck *BankClerk) SimpleTransfer(amount uint64) {
 	bck.transfer_internal(bck.acc1, bck.acc2, amount)
 }
 
@@ -62,7 +62,7 @@ func MakeBank(acc uint64, balance uint64) Bank {
 	ls := MakeLockServer()
 	ks := MakeKVServer()
 	ks.kvs[acc] = balance
-	return Bank{ls:ls, ks:ks}
+	return Bank{ls: ls, ks: ks}
 }
 
 func MakeBankClerk(b Bank, acc1 uint64, acc2 uint64, cid uint64) *BankClerk {

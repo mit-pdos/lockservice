@@ -18,9 +18,9 @@ type IncrServer struct {
 }
 
 func (is *IncrServer) increment_core_unsafe(seq uint64, args RPCVals) uint64 {
-	key := args.U64_1       // A
-	var oldv uint64         // A
-	oldv = is.kck.Get(key)  // A
+	key := args.U64_1      // A
+	var oldv uint64        // A
+	oldv = is.kck.Get(key) // A
 
 	is.kck.Put(key, oldv+1) // B
 	return 0
@@ -84,7 +84,6 @@ func WriteDurableIncrServer(ks *IncrServer) {
 	// TODO: implement persister
 	return
 }
-
 
 func (is *IncrServer) Increment(req *RPCRequest, reply *RPCReply) bool {
 	is.sv.mu.Lock()

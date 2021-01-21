@@ -26,7 +26,7 @@ func TestBank(t *testing.T) {
 
 	random_activity_fcn := func(ck *BankClerk) {
 		for {
-			ck.SimpleTransfer( nrand() %100 )
+			ck.SimpleTransfer(nrand() % 100)
 			time.Sleep(10 * time.Millisecond)
 		}
 	}

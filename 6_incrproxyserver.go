@@ -75,7 +75,7 @@ func EncodeShortTermIncrClerk(ck *ShortTermIncrClerk) []byte {
 func MakeFreshIncrClerk() *ShortTermIncrClerk {
 	// TODO: get fresh cid
 	cid := uint64(0)
-	ck := ShortTermIncrClerk{cid:cid}
+	ck := ShortTermIncrClerk{cid: cid}
 	return &ck
 }
 

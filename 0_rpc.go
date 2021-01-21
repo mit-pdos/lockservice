@@ -16,13 +16,13 @@ type RPCVals struct {
 type RPCRequest struct {
 	// Go's net/rpc requires that these field
 	// names start with upper case letters!
-	CID      uint64
-	Seq      uint64
-	Args     RPCVals
+	CID  uint64
+	Seq  uint64
+	Args RPCVals
 }
 type RPCReply struct {
 	Stale bool
-	Ret uint64
+	Ret   uint64
 }
 
 type RpcFunc func(*RPCRequest, *RPCReply) bool
@@ -71,8 +71,8 @@ func RemoteProcedureCall(rpc RpcFunc, req *RPCRequest, reply *RPCReply) bool {
 
 // Common code for RPC clients: tracking of CID and next sequence number.
 type RPCClient struct {
-	cid     uint64
-	seq     uint64
+	cid uint64
+	seq uint64
 }
 
 func MakeRPCClient(cid uint64) *RPCClient {
@@ -104,7 +104,7 @@ type RPCServer struct {
 	mu *sync.Mutex
 
 	// each CID's last sequence # and the corresponding reply
-	lastSeq map[uint64]uint64
+	lastSeq   map[uint64]uint64
 	lastReply map[uint64]uint64
 }
 

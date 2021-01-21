@@ -6,7 +6,7 @@ package lockservice
 //
 type KVClerk struct {
 	primary *KVServer
-	client *RPCClient
+	client  *RPCClient
 	cid     uint64
 	seq     uint64
 }
@@ -24,5 +24,5 @@ func (ck *KVClerk) Put(key uint64, val uint64) {
 }
 
 func (ck *KVClerk) Get(key uint64) uint64 {
-	return ck.client.MakeRequest(ck.primary.Get, RPCVals{U64_1:key})
+	return ck.client.MakeRequest(ck.primary.Get, RPCVals{U64_1: key})
 }
