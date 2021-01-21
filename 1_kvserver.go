@@ -27,25 +27,25 @@ func ReadDurableKVServer() *KVServer {
 }
 
 func (ks *KVServer) Put(req *RPCRequest, reply *RPCReply) bool {
-	f := func(args RPCVals) uint64 {
-		return ks.put_core(args)
-	}
-	fdur := func() {
-		WriteDurableKVServer(ks)
-	}
-	r := ks.sv.HandleRequest(f, fdur, req, reply)
-	return r
+	return ks.sv.HandleRequest(
+		func(args RPCVals) uint64 {
+			return ks.put_core(args)
+		},
+		func() {
+			WriteDurableKVServer(ks)
+		},
+		req, reply)
 }
 
 func (ks *KVServer) Get(req *RPCRequest, reply *RPCReply) bool {
-	f := func(args RPCVals) uint64 {
-		return ks.get_core(args)
-	}
-	fdur := func() {
-		WriteDurableKVServer(ks)
-	}
-	r := ks.sv.HandleRequest(f, fdur, req, reply)
-	return r
+	return ks.sv.HandleRequest(
+		func(args RPCVals) uint64 {
+			return ks.get_core(args)
+		},
+		func() {
+			WriteDurableKVServer(ks)
+		},
+		req, reply)
 }
 
 func MakeKVServer() *KVServer {

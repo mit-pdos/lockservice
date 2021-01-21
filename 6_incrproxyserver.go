@@ -48,9 +48,9 @@ func (ck *ShortTermIncrClerk) MakePreparedRequest() uint64 {
 	return reply.Ret
 }
 
-func DecodeShortTermIncrClerk(is *IncrServer, content []byte) ShortTermIncrClerk {
+func DecodeShortTermIncrClerk(is *IncrServer, content []byte) *ShortTermIncrClerk {
 	d := marshal.NewDec(content)
-	var ck ShortTermIncrClerk
+	ck := new(ShortTermIncrClerk)
 	ck.incrserver = is
 	ck.cid = d.GetInt()
 	ck.seq = d.GetInt()
@@ -72,16 +72,16 @@ func EncodeShortTermIncrClerk(ck *ShortTermIncrClerk) []byte {
 	return e.Finish()
 }
 
-func MakeFreshIncrClerk() ShortTermIncrClerk {
+func MakeFreshIncrClerk() *ShortTermIncrClerk {
 	// TODO: get fresh cid
 	cid := uint64(0)
 	ck := ShortTermIncrClerk{cid:cid}
-	return ck
+	return &ck
 }
 
 func (is *IncrProxyServer) proxy_increment_core(seq uint64, args RPCVals) uint64 {
 	filename := "procy_incr_request_" + grove_ffi.U64ToString(seq)
-	var ck ShortTermIncrClerk
+	var ck *ShortTermIncrClerk
 
 	content := grove_ffi.Read(filename)
 	if len(content) > 0 {
@@ -89,7 +89,7 @@ func (is *IncrProxyServer) proxy_increment_core(seq uint64, args RPCVals) uint64
 	} else {
 		ck = MakeFreshIncrClerk()
 		ck.PrepareRequest(args)
-		content := EncodeShortTermIncrClerk(&ck) // this shadows the other content variable
+		content := EncodeShortTermIncrClerk(ck) // this shadows the other content variable
 		grove_ffi.Write(filename, content)
 	}
 

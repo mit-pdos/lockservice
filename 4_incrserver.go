@@ -50,7 +50,6 @@ func (is *IncrServer) increment_core_unsafe(seq uint64, args RPCVals) uint64 {
 func (is *IncrServer) increment_core(seq uint64, args RPCVals) uint64 {
 	key := args.U64_1
 	var oldv uint64
-	var enc marshal.Enc
 
 	filename := "incr_request_" + grove_ffi.U64ToString(seq) + "_oldv"
 	content := grove_ffi.Read(filename)
@@ -65,7 +64,7 @@ func (is *IncrServer) increment_core(seq uint64, args RPCVals) uint64 {
 		// to have Pre=True and Post=True.
 		oldv = is.kck.Get(key)
 
-		enc = marshal.NewEnc(8)
+		enc := marshal.NewEnc(8)
 		enc.PutInt(oldv)
 		grove_ffi.Write(filename, enc.Finish())
 	}
