@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	OpDecrease = 0
-	OpIncrease = 1
+	OpDecrease = uint64(0)
+	OpIncrease = uint64(1)
 )
 
 type Transaction struct {
@@ -18,7 +18,7 @@ type Transaction struct {
 }
 
 type ParticipantServer struct {
-	mu sync.Mutex
+	mu *sync.Mutex
 
 	lockmap lockmap.LockMap
 	kvs map[uint64]uint64
@@ -30,7 +30,8 @@ type ParticipantServer struct {
 // returns 1 -> Vote No
 func (ps *ParticipantServer) PrepareIncrease(tid, key, amount uint64) uint64 {
 	ps.mu.Lock()
-	if _, ok := ps.txns[tid]; ok {
+	_, ok := ps.txns[tid]
+	if ok {
 		ps.mu.Unlock()
 		return 0
 	}
@@ -44,7 +45,8 @@ func (ps *ParticipantServer) PrepareIncrease(tid, key, amount uint64) uint64 {
 
 func (ps *ParticipantServer) PrepareDecrease(tid, key, amount uint64) uint64 {
 	ps.mu.Lock()
-	if _, ok := ps.txns[tid]; ok {
+	_, ok := ps.txns[tid]
+	if ok {
 		ps.mu.Unlock()
 		return 0
 	}

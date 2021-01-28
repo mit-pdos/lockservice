@@ -10,6 +10,7 @@ type IncrProxyServer struct {
 
 	incrserver *IncrServer
 	ick        *IncrClerk
+	lastCID    uint64
 }
 
 func (is *IncrProxyServer) proxy_increment_core_unsafe(seq uint64, args RPCVals) uint64 {
@@ -72,10 +73,18 @@ func EncodeShortTermIncrClerk(ck *ShortTermIncrClerk) []byte {
 	return e.Finish()
 }
 
-func MakeFreshIncrClerk() *ShortTermIncrClerk {
-	// TODO: get fresh cid
-	cid := uint64(0)
-	ck := ShortTermIncrClerk{cid: cid}
+func (is *IncrProxyServer) MakeFreshIncrClerk() *ShortTermIncrClerk {
+	cid := uint64(is.lastCID)
+	overflow_guard_incr(is.lastCID)
+	is.lastCID = is.lastCID + 1
+
+	// Make sure that CIDs don't get reused;
+	// IncrProxyServer owns all RPCClient_own for any cid >= lastCID
+	e := marshal.NewEnc(8)
+	e.PutInt(is.lastCID)
+	grove_ffi.Write("lastCID", e.Finish())
+
+	ck := ShortTermIncrClerk{cid: cid, seq: 1, incrserver: is.incrserver}
 	return &ck
 }
 
@@ -87,7 +96,7 @@ func (is *IncrProxyServer) proxy_increment_core(seq uint64, args RPCVals) uint64
 	if len(content) > 0 {
 		ck = DecodeShortTermIncrClerk(is.incrserver, content)
 	} else {
-		ck = MakeFreshIncrClerk()
+		ck = is.MakeFreshIncrClerk()
 		ck.PrepareRequest(args)
 		content := EncodeShortTermIncrClerk(ck) // this shadows the other content variable
 		grove_ffi.Write(filename, content)
