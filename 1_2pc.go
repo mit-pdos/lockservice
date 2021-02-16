@@ -20,9 +20,10 @@ type Transaction struct {
 type ParticipantServer struct {
 	mu *sync.Mutex
 
-	lockmap lockmap.LockMap
+	lockmap *lockmap.LockMap
 	kvs map[uint64]uint64
-	txns map[uint64]Transaction
+	txns map[uint64]Transaction // in-progress transactions
+	finishedTxns map[uint64]struct{} // finished transactions
 }
 
 // Precondition: emp
@@ -35,11 +36,25 @@ func (ps *ParticipantServer) PrepareIncrease(tid, key, amount uint64) uint64 {
 		ps.mu.Unlock()
 		return 0
 	}
+
+	_, ok2 := ps.finishedTxns[tid]
+	if ok2 {
+		ps.mu.Unlock()
+		return 1
+	}
+
 	ps.lockmap.Acquire(key)
+	if amount + ps.kvs[key] < ps.kvs[key] {
+		ps.lockmap.Release(key)
+		ps.mu.Unlock()
+		return 1 // Vote No
+	}
+
 	ps.txns[tid] = Transaction{heldResource:key, oldValue:ps.kvs[key], operation:OpIncrease, amount:amount}
 	// transaction now owns key
 	ps.kvs[key] += amount
 	// TODO(crash): save txn and state to disk
+	ps.mu.Unlock()
 	return 0
 }
 
@@ -49,6 +64,12 @@ func (ps *ParticipantServer) PrepareDecrease(tid, key, amount uint64) uint64 {
 	if ok {
 		ps.mu.Unlock()
 		return 0
+	}
+
+	_, ok2 := ps.finishedTxns[tid]
+	if ok2 {
+		ps.mu.Unlock()
+		return 1
 	}
 	// NOTE: We aren't checking if we've Voted No for tid previously, so we
 	// might actually end up voting yes after a bunch of retrying. That's ok,
@@ -62,11 +83,13 @@ func (ps *ParticipantServer) PrepareDecrease(tid, key, amount uint64) uint64 {
 	ps.lockmap.Acquire(key)
 	if amount > ps.kvs[key] {
 		ps.lockmap.Release(key)
+		ps.mu.Unlock()
 		return 1 // Vote No
 	}
 	ps.txns[tid] = Transaction{heldResource:key, oldValue:ps.kvs[key], operation:OpDecrease, amount:amount}
 	ps.kvs[key] -= amount
 	// TODO(crash): save txn and state to disk
+	ps.mu.Unlock()
 	return 0
 }
 
@@ -80,6 +103,7 @@ func (ps *ParticipantServer) Commit(tid uint64) {
 	ps.lockmap.Release(t.heldResource)
 	// TODO(crash): save txn and state to disk
 	delete(ps.txns, tid)
+	ps.finishedTxns[tid] = struct{}{}
 	ps.mu.Unlock()
 }
 
@@ -87,13 +111,24 @@ func (ps *ParticipantServer) Abort(tid uint64) {
 	ps.mu.Lock()
 	t, ok := ps.txns[tid]
 	if !ok { // invalid tid
+		ps.mu.Unlock()
 		return
 	}
 	ps.kvs[t.heldResource] = t.oldValue // rollback
 	ps.lockmap.Release(t.heldResource)
 	delete(ps.txns, tid)
+	ps.finishedTxns[tid] = struct{}{}
 	// TODO(crash): save txn and state to disk
 	ps.mu.Unlock()
+}
+
+func MakeParticipantServer() {
+	s := new(ParticipantServer)
+	s.mu = new(sync.Mutex)
+	s.lockmap = lockmap.MkLockMap()
+	s.kvs = make(map[uint64]uint64)
+	s.txns = make(map[uint64]Transaction)
+	s.finishedTxns = make(map[uint64]struct{})
 }
 
 type TransactionCoordinator struct {

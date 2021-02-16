@@ -84,8 +84,12 @@ func (is *IncrProxyServer) MakeFreshIncrClerk() *ShortTermIncrClerk {
 	e.PutInt(is.lastCID)
 	grove_ffi.Write("lastCID", e.Finish())
 
-	ck := ShortTermIncrClerk{cid: cid, seq: 1, incrserver: is.incrserver}
-	return &ck
+	ck_ptr := new(ShortTermIncrClerk)
+	ck_ptr.cid = cid
+	ck_ptr.seq = 1
+	ck_ptr.incrserver = is.incrserver
+
+	return ck_ptr
 }
 
 func (is *IncrProxyServer) proxy_increment_core(seq uint64, args RPCVals) uint64 {
