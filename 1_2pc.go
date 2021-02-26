@@ -5,16 +5,9 @@ import (
 	"github.com/mit-pdos/goose-nfsd/lockmap"
 )
 
-const (
-	OpDecrease = uint64(0)
-	OpIncrease = uint64(1)
-)
-
-type Transaction struct {
-	heldResource uint64
+type TxnResources struct {
+	key uint64
 	oldValue uint64
-	operation uint64 // 0 == decrease, 1 == increase
-	amount uint64
 }
 
 type ParticipantServer struct {
@@ -22,8 +15,8 @@ type ParticipantServer struct {
 
 	lockmap *lockmap.LockMap
 	kvs map[uint64]uint64
-	txns map[uint64]Transaction // in-progress transactions
-	finishedTxns map[uint64]struct{} // finished transactions
+	txns map[uint64]TxnResources // in-progress transactions
+	finishedTxns map[uint64]bool // finished transactions
 }
 
 // Precondition: emp
@@ -50,7 +43,7 @@ func (ps *ParticipantServer) PrepareIncrease(tid, key, amount uint64) uint64 {
 		return 1 // Vote No
 	}
 
-	ps.txns[tid] = Transaction{heldResource:key, oldValue:ps.kvs[key], operation:OpIncrease, amount:amount}
+	ps.txns[tid] = TxnResources{key:key, oldValue:ps.kvs[key]}
 	// transaction now owns key
 	ps.kvs[key] += amount
 	// TODO(crash): save txn and state to disk
@@ -86,7 +79,7 @@ func (ps *ParticipantServer) PrepareDecrease(tid, key, amount uint64) uint64 {
 		ps.mu.Unlock()
 		return 1 // Vote No
 	}
-	ps.txns[tid] = Transaction{heldResource:key, oldValue:ps.kvs[key], operation:OpDecrease, amount:amount}
+	ps.txns[tid] = TxnResources{key:key, oldValue:ps.kvs[key]}
 	ps.kvs[key] -= amount
 	// TODO(crash): save txn and state to disk
 	ps.mu.Unlock()
@@ -100,10 +93,10 @@ func (ps *ParticipantServer) Commit(tid uint64) {
 		ps.mu.Unlock()
 		return
 	}
-	ps.lockmap.Release(t.heldResource)
+	ps.lockmap.Release(t.key)
 	// TODO(crash): save txn and state to disk
 	delete(ps.txns, tid)
-	ps.finishedTxns[tid] = struct{}{}
+	ps.finishedTxns[tid] = true
 	ps.mu.Unlock()
 }
 
@@ -114,10 +107,10 @@ func (ps *ParticipantServer) Abort(tid uint64) {
 		ps.mu.Unlock()
 		return
 	}
-	ps.kvs[t.heldResource] = t.oldValue // rollback
-	ps.lockmap.Release(t.heldResource)
+	ps.kvs[t.key] = t.oldValue // rollback
+	ps.lockmap.Release(t.key)
 	delete(ps.txns, tid)
-	ps.finishedTxns[tid] = struct{}{}
+	ps.finishedTxns[tid] = true
 	// TODO(crash): save txn and state to disk
 	ps.mu.Unlock()
 }
@@ -127,8 +120,8 @@ func MakeParticipantServer() {
 	s.mu = new(sync.Mutex)
 	s.lockmap = lockmap.MkLockMap()
 	s.kvs = make(map[uint64]uint64)
-	s.txns = make(map[uint64]Transaction)
-	s.finishedTxns = make(map[uint64]struct{})
+	s.txns = make(map[uint64]TxnResources)
+	s.finishedTxns = make(map[uint64]bool)
 }
 
 type TransactionCoordinator struct {
