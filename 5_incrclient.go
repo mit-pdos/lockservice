@@ -1,13 +1,15 @@
 package lockservice
 
 type IncrClerk struct {
-	primary *IncrServer
+	primary uint64
 	client  *RPCClient
 	cid     uint64
 	seq     uint64
 }
 
-func MakeIncrClerk(primary *IncrServer, cid uint64) *IncrClerk {
+const INCR_INCREMENT uint64 = 1
+
+func MakeIncrClerk(primary uint64, cid uint64) *IncrClerk {
 	ck := new(IncrClerk)
 	ck.primary = primary
 	ck.client = MakeRPCClient(cid)
@@ -15,6 +17,6 @@ func MakeIncrClerk(primary *IncrServer, cid uint64) *IncrClerk {
 }
 
 func (ck *IncrClerk) Increment(key uint64) {
-	ck.client.MakeRequest(ck.primary.Increment, RPCVals{U64_1: key})
+	ck.client.MakeRequest(ck.primary, INCR_INCREMENT, RPCVals{U64_1: key})
 	return // For goose
 }

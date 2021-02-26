@@ -8,7 +8,7 @@ import (
 type IncrProxyServer struct {
 	sv *RPCServer
 
-	incrserver *IncrServer
+	incrserver uint64
 	ick        *IncrClerk
 	lastCID    uint64
 }
@@ -24,7 +24,7 @@ type ShortTermIncrClerk struct {
 	cid        uint64
 	seq        uint64
 	req        RPCRequest
-	incrserver *IncrServer
+	incrserver uint64
 }
 
 func (ck *ShortTermIncrClerk) PrepareRequest(args RPCVals) {
@@ -40,7 +40,7 @@ func (ck *ShortTermIncrClerk) MakePreparedRequest() uint64 {
 	var errb = false
 	reply := new(RPCReply)
 	for {
-		errb = RemoteProcedureCall(ck.incrserver.Increment, &ck.req, reply)
+		errb = RemoteProcedureCall(ck.incrserver, INCR_INCREMENT, &ck.req, reply)
 		if errb == false {
 			break
 		}
@@ -49,7 +49,7 @@ func (ck *ShortTermIncrClerk) MakePreparedRequest() uint64 {
 	return reply.Ret
 }
 
-func DecodeShortTermIncrClerk(is *IncrServer, content []byte) *ShortTermIncrClerk {
+func DecodeShortTermIncrClerk(is uint64, content []byte) *ShortTermIncrClerk {
 	d := marshal.NewDec(content)
 	ck := new(ShortTermIncrClerk)
 	ck.incrserver = is

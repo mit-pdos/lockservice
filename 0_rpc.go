@@ -52,18 +52,46 @@ func CheckReplyTable(
 	return false
 }
 
+// rpcHandlers describes the RpcFunc handler that will run
+// when an RPC is issued to some machine (first key) to invoke
+// a specific RPC number (second key).
+var rpcHandlers map[uint64]map[uint64]RpcFunc
+var rpcNextHost uint64
+var rpcHandlersLock sync.Mutex
+
+func allocServer(handlers map[uint64]RpcFunc) uint64 {
+	rpcHandlersLock.Lock()
+
+	id := rpcNextHost
+	rpcNextHost = rpcNextHost + 1
+
+	if rpcHandlers == nil {
+		rpcHandlers = make(map[uint64]map[uint64]RpcFunc)
+	}
+
+	rpcHandlers[id] = handlers
+	rpcHandlersLock.Unlock()
+	return id
+}
+
 // Emulate an RPC call over a lossy network.
 // Returns true iff server reported error or request "timed out".
 // For the "real thing", this should instead submit a request via the network.
-func RemoteProcedureCall(rpc RpcFunc, req *RPCRequest, reply *RPCReply) bool {
+func RemoteProcedureCall(host uint64, rpcid uint64, req *RPCRequest, reply *RPCReply) bool {
 	go func() {
 		dummy_reply := new(RPCReply)
 		for {
+			rpcHandlersLock.Lock()
+			rpc := rpcHandlers[host][rpcid]
+			rpcHandlersLock.Unlock()
 			rpc(req, dummy_reply)
 		}
 	}()
 
 	if nondet() {
+		rpcHandlersLock.Lock()
+		rpc := rpcHandlers[host][rpcid]
+		rpcHandlersLock.Unlock()
 		return rpc(req, reply)
 	}
 	return true
@@ -79,7 +107,7 @@ func MakeRPCClient(cid uint64) *RPCClient {
 	return &RPCClient{cid: cid, seq: 1}
 }
 
-func (cl *RPCClient) MakeRequest(rpc RpcFunc, args RPCVals) uint64 {
+func (cl *RPCClient) MakeRequest(host uint64, rpcid uint64, args RPCVals) uint64 {
 	overflow_guard_incr(cl.seq)
 	// prepare the arguments.
 	req := &RPCRequest{Args: args, CID: cl.cid, Seq: cl.seq}
@@ -89,7 +117,7 @@ func (cl *RPCClient) MakeRequest(rpc RpcFunc, args RPCVals) uint64 {
 	var errb = false
 	reply := new(RPCReply)
 	for {
-		errb = RemoteProcedureCall(rpc, req, reply)
+		errb = RemoteProcedureCall(host, rpcid, req, reply)
 		if errb == false {
 			break
 		}
