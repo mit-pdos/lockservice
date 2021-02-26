@@ -2,7 +2,11 @@ package lockservice
 
 import (
 	"github.com/mit-pdos/lockservice/grove_common"
+	"github.com/mit-pdos/lockservice/grove_ffi"
 )
+
+const KV_PUT uint64 = 1
+const KV_GET uint64 = 2
 
 type KVServer struct {
 	sv *RPCServer
@@ -38,4 +42,13 @@ func MakeKVServer() *KVServer {
 	ks.kvs = make(map[uint64]uint64)
 	ks.sv = MakeRPCServer()
 	return ks
+}
+
+func (ks *KVServer) AllocServer() uint64 {
+	handlers := make(map[uint64]grove_common.RpcFunc)
+	handlers[KV_PUT] = ks.Put
+	handlers[KV_GET] = ks.Get
+	host := grove_ffi.AllocServer(handlers)
+
+	return host
 }

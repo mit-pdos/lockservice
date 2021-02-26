@@ -15,9 +15,6 @@ type KVClerk struct {
 	seq     uint64
 }
 
-const KV_PUT uint64 = 1
-const KV_GET uint64 = 2
-
 func MakeKVClerk(primary uint64, cid uint64) *KVClerk {
 	ck := new(KVClerk)
 	ck.primary = primary
