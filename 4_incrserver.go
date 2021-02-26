@@ -1,7 +1,7 @@
 package lockservice
 
 import (
-	"./grove_ffi"
+	"github.com/mit-pdos/lockservice/grove_ffi"
 	"github.com/tchajed/marshal"
 )
 
