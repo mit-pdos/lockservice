@@ -1,5 +1,9 @@
 package lockservice
 
+import (
+	"github.com/mit-pdos/lockservice/grove_common"
+)
+
 //
 // the lockservice Clerk lives in the client
 // and maintains a little state.
@@ -20,7 +24,7 @@ func MakeClerk(primary uint64, cid uint64) *Clerk {
 }
 
 func (ck *Clerk) TryLock(lockname uint64) bool {
-	return ck.client.MakeRequest(ck.primary, LOCK_TRYLOCK, RPCVals{U64_1: lockname}) != 0
+	return ck.client.MakeRequest(ck.primary, LOCK_TRYLOCK, grove_common.RPCVals{U64_1: lockname}) != 0
 }
 
 //
@@ -29,7 +33,7 @@ func (ck *Clerk) TryLock(lockname uint64) bool {
 // false otherwise.
 //
 func (ck *Clerk) Unlock(lockname uint64) bool {
-	return ck.client.MakeRequest(ck.primary, LOCK_UNLOCK, RPCVals{U64_1: lockname}) != 0
+	return ck.client.MakeRequest(ck.primary, LOCK_UNLOCK, grove_common.RPCVals{U64_1: lockname}) != 0
 }
 
 // Spins until we have the lock

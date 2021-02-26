@@ -1,6 +1,7 @@
 package lockservice
 
 import (
+	"github.com/mit-pdos/lockservice/grove_common"
 	"github.com/mit-pdos/lockservice/grove_ffi"
 	"github.com/tchajed/marshal"
 	"sync"
@@ -12,12 +13,12 @@ type KVServer struct {
 	kvs map[uint64]uint64
 }
 
-func (ks *KVServer) put_core(args RPCVals) uint64 {
+func (ks *KVServer) put_core(args grove_common.RPCVals) uint64 {
 	ks.kvs[args.U64_1] = args.U64_2
 	return 0
 }
 
-func (ks *KVServer) get_core(args RPCVals) uint64 {
+func (ks *KVServer) get_core(args grove_common.RPCVals) uint64 {
 	return ks.kvs[args.U64_1]
 }
 
@@ -75,9 +76,9 @@ func ReadDurableKVServer() *KVServer {
 	return ks
 }
 
-func (ks *KVServer) Put(req *RPCRequest, reply *RPCReply) bool {
+func (ks *KVServer) Put(req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
 	return ks.sv.HandleRequest(
-		func(args RPCVals) uint64 {
+		func(args grove_common.RPCVals) uint64 {
 			return ks.put_core(args)
 		},
 		func() {
@@ -86,9 +87,9 @@ func (ks *KVServer) Put(req *RPCRequest, reply *RPCReply) bool {
 		req, reply)
 }
 
-func (ks *KVServer) Get(req *RPCRequest, reply *RPCReply) bool {
+func (ks *KVServer) Get(req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
 	return ks.sv.HandleRequest(
-		func(args RPCVals) uint64 {
+		func(args grove_common.RPCVals) uint64 {
 			return ks.get_core(args)
 		},
 		func() {

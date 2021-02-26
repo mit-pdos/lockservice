@@ -1,5 +1,10 @@
 package lockservice
 
+import (
+	"github.com/mit-pdos/lockservice/grove_common"
+	"github.com/mit-pdos/lockservice/grove_ffi"
+)
+
 type Bank struct {
 	ls uint64
 	ks uint64
@@ -63,15 +68,15 @@ func MakeBank(acc uint64, balance uint64) Bank {
 	ks := MakeKVServer()
 	ks.kvs[acc] = balance
 
-	ls_handlers := make(map[uint64]RpcFunc)
+	ls_handlers := make(map[uint64]grove_common.RpcFunc)
 	ls_handlers[LOCK_TRYLOCK] = ls.TryLock
 	ls_handlers[LOCK_UNLOCK] = ls.Unlock
-	lsid := allocServer(ls_handlers)
+	lsid := grove_ffi.AllocServer(ls_handlers)
 
-	ks_handlers := make(map[uint64]RpcFunc)
+	ks_handlers := make(map[uint64]grove_common.RpcFunc)
 	ks_handlers[KV_PUT] = ks.Put
 	ks_handlers[KV_GET] = ks.Get
-	ksid := allocServer(ks_handlers)
+	ksid := grove_ffi.AllocServer(ks_handlers)
 
 	return Bank{ls: lsid, ks: ksid}
 }

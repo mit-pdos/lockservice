@@ -1,12 +1,16 @@
 package lockservice
 
+import (
+	"github.com/mit-pdos/lockservice/grove_common"
+)
+
 type LockServer struct {
 	sv *RPCServer
 	// for each lock name, is it locked?
 	locks map[uint64]bool
 }
 
-func (ls *LockServer) tryLock_core(args RPCVals) uint64 {
+func (ls *LockServer) tryLock_core(args grove_common.RPCVals) uint64 {
 	lockname := args.U64_1
 	locked, _ := ls.locks[lockname]
 	if locked {
@@ -17,7 +21,7 @@ func (ls *LockServer) tryLock_core(args RPCVals) uint64 {
 	}
 }
 
-func (ls *LockServer) unlock_core(args RPCVals) uint64 {
+func (ls *LockServer) unlock_core(args grove_common.RPCVals) uint64 {
 	lockname := args.U64_1
 	locked, _ := ls.locks[lockname]
 	if locked {
@@ -43,8 +47,8 @@ func ReadDurableLockServer() *LockServer {
 // server Lock RPC handler.
 // returns true iff error
 //
-func (ls *LockServer) TryLock(req *RPCRequest, reply *RPCReply) bool {
-	f := func(args RPCVals) uint64 {
+func (ls *LockServer) TryLock(req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
+	f := func(args grove_common.RPCVals) uint64 {
 		return ls.tryLock_core(args)
 	}
 	fdur := func() {
@@ -59,8 +63,8 @@ func (ls *LockServer) TryLock(req *RPCRequest, reply *RPCReply) bool {
 // server Unlock RPC handler.
 // returns true iff error
 //
-func (ls *LockServer) Unlock(req *RPCRequest, reply *RPCReply) bool {
-	f := func(args RPCVals) uint64 {
+func (ls *LockServer) Unlock(req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
+	f := func(args grove_common.RPCVals) uint64 {
 		return ls.unlock_core(args)
 	}
 	fdur := func() {

@@ -8,6 +8,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"github.com/mit-pdos/lockservice/grove_common"
+	"github.com/mit-pdos/lockservice/grove_ffi"
 )
 
 func nrand() uint64 {
@@ -38,10 +40,10 @@ func TestBasicConcurrent(t *testing.T) {
 
 	p := MakeLockServer()
 
-	p_handlers := make(map[uint64]RpcFunc)
+	p_handlers := make(map[uint64]grove_common.RpcFunc)
 	p_handlers[LOCK_TRYLOCK] = p.TryLock
 	p_handlers[LOCK_UNLOCK] = p.Unlock
-	pid := allocServer(p_handlers)
+	pid := grove_ffi.AllocServer(p_handlers)
 
 	ck1 := MakeClerk(pid, nrand())
 	ck2 := MakeClerk(pid, nrand())

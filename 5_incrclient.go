@@ -1,5 +1,9 @@
 package lockservice
 
+import (
+	"github.com/mit-pdos/lockservice/grove_common"
+)
+
 type IncrClerk struct {
 	primary uint64
 	client  *RPCClient
@@ -17,6 +21,6 @@ func MakeIncrClerk(primary uint64, cid uint64) *IncrClerk {
 }
 
 func (ck *IncrClerk) Increment(key uint64) {
-	ck.client.MakeRequest(ck.primary, INCR_INCREMENT, RPCVals{U64_1: key})
+	ck.client.MakeRequest(ck.primary, INCR_INCREMENT, grove_common.RPCVals{U64_1: key})
 	return // For goose
 }

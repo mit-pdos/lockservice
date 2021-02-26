@@ -1,5 +1,9 @@
 package lockservice
 
+import (
+	"github.com/mit-pdos/lockservice/grove_common"
+)
+
 //
 // the lockservice Clerk lives in the client
 // and maintains a little state.
@@ -22,10 +26,10 @@ func MakeKVClerk(primary uint64, cid uint64) *KVClerk {
 }
 
 func (ck *KVClerk) Put(key uint64, val uint64) {
-	ck.client.MakeRequest(ck.primary, KV_PUT, RPCVals{U64_1: key, U64_2: val})
+	ck.client.MakeRequest(ck.primary, KV_PUT, grove_common.RPCVals{U64_1: key, U64_2: val})
 	return // For goose
 }
 
 func (ck *KVClerk) Get(key uint64) uint64 {
-	return ck.client.MakeRequest(ck.primary, KV_GET, RPCVals{U64_1: key})
+	return ck.client.MakeRequest(ck.primary, KV_GET, grove_common.RPCVals{U64_1: key})
 }
