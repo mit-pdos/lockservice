@@ -5,6 +5,7 @@ import "path/filepath"
 import "io/ioutil"
 import "log"
 import "fmt"
+import "syscall"
 
 // filesystem+network library
 const DataDir = "durable"
@@ -36,6 +37,15 @@ func Write(filename string, content []byte) {
 func Read(filename string) []byte {
 	content, _ := ioutil.ReadFile(filepath.Join(DataDir, filename))
 	return content
+}
+
+func AtomicAppend(filename string, data []byte) {
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
+	if err != nil {
+		panic(err)
+	}
+	f.Write(data)
+	syscall.Fdatasync(int(f.Fd()))
 }
 
 // injective function u64 -> str
