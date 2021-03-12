@@ -2,6 +2,7 @@ package lockservice
 
 import (
 	"sync"
+	"github.com/tchajed/marshal"
 	"github.com/mit-pdos/lockservice/grove_common"
 	"github.com/mit-pdos/lockservice/grove_ffi"
 )
@@ -33,29 +34,71 @@ func CheckReplyTable(
 	return false
 }
 
+func rpcReqEncode(req *grove_common.RPCRequest) []byte {
+	e := marshal.NewEnc(4 * 8)
+	e.PutInt(req.CID)
+	e.PutInt(req.Seq)
+	e.PutInt(req.Args.U64_1)
+	e.PutInt(req.Args.U64_2)
+	return e.Finish()
+}
+
+func rpcReqDecode(data []byte, req *grove_common.RPCRequest) {
+	d := marshal.NewDec(data)
+	req.CID = d.GetInt()
+	req.Seq = d.GetInt()
+	req.Args.U64_1 = d.GetInt()
+	req.Args.U64_2 = d.GetInt()
+}
+
+func rpcReplyEncode(reply *grove_common.RPCReply) []byte {
+	e := marshal.NewEnc(2 * 8)
+	e.PutBool(reply.Stale)
+	e.PutInt(reply.Ret)
+	return e.Finish()
+}
+
+func rpcReplyDecode(data []byte, reply *grove_common.RPCReply) {
+	d := marshal.NewDec(data)
+	reply.Stale = d.GetBool()
+	reply.Ret = d.GetInt()
+}
+
 // Emulate an RPC call over a lossy network.
 // Returns true iff server reported error or request "timed out".
 // For the "real thing", this should instead submit a request via the network.
 func RemoteProcedureCall(host uint64, rpcid uint64, req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
+	reqdata := rpcReqEncode(req)
+
 	go func() {
 		dummy_reply := new(grove_common.RPCReply)
 		for {
 			rpc := grove_ffi.GetServer(host, rpcid)
-			rpc(req, dummy_reply)
+			decodedReq := new(grove_common.RPCRequest)
+			rpcReqDecode(reqdata, decodedReq)
+			rpc(decodedReq, dummy_reply)
 		}
 	}()
 
 	if nondet() {
 		rpc := grove_ffi.GetServer(host, rpcid)
-		return rpc(req, reply)
+		decodedReq := new(grove_common.RPCRequest)
+		rpcReqDecode(reqdata, decodedReq)
+
+		serverReply := new(grove_common.RPCReply)
+		ok := rpc(req, serverReply)
+
+		replydata := rpcReplyEncode(serverReply)
+		rpcReplyDecode(replydata, reply)
+		return ok
 	}
 	return true
 }
 
 // Common code for RPC clients: tracking of CID and next sequence number.
 type RPCClient struct {
-	cid     uint64
-	seq     uint64
+	cid uint64
+	seq uint64
 }
 
 func MakeRPCClient(cid uint64) *RPCClient {
@@ -87,7 +130,7 @@ type RPCServer struct {
 	mu *sync.Mutex
 
 	// each CID's last sequence # and the corresponding reply
-	lastSeq map[uint64]uint64
+	lastSeq   map[uint64]uint64
 	lastReply map[uint64]uint64
 }
 
