@@ -3,6 +3,7 @@ package lockservice
 import (
 	"sync"
 	"github.com/tchajed/marshal"
+	"github.com/tchajed/goose/machine"
 	"github.com/mit-pdos/lockservice/grove_common"
 	"github.com/mit-pdos/lockservice/grove_ffi"
 )
@@ -40,7 +41,9 @@ func rpcReqEncode(req *grove_common.RPCRequest) []byte {
 	e.PutInt(req.Seq)
 	e.PutInt(req.Args.U64_1)
 	e.PutInt(req.Args.U64_2)
-	return e.Finish()
+	res := e.Finish()
+	machine.Linearize()
+	return res
 }
 
 func rpcReqDecode(data []byte, req *grove_common.RPCRequest) {
@@ -49,19 +52,23 @@ func rpcReqDecode(data []byte, req *grove_common.RPCRequest) {
 	req.Seq = d.GetInt()
 	req.Args.U64_1 = d.GetInt()
 	req.Args.U64_2 = d.GetInt()
+	machine.Linearize()
 }
 
 func rpcReplyEncode(reply *grove_common.RPCReply) []byte {
 	e := marshal.NewEnc(2 * 8)
 	e.PutBool(reply.Stale)
 	e.PutInt(reply.Ret)
-	return e.Finish()
+	res := e.Finish()
+	machine.Linearize()
+	return res
 }
 
 func rpcReplyDecode(data []byte, reply *grove_common.RPCReply) {
 	d := marshal.NewDec(data)
 	reply.Stale = d.GetBool()
 	reply.Ret = d.GetInt()
+	machine.Linearize()
 }
 
 // Emulate an RPC call over a lossy network.
