@@ -92,12 +92,12 @@ func MakeRPCClient(host string, cid uint64) *RPCClient {
 }
 
 // 2 refers to the number of u64s in args
-func RemoteProcedureCall2(cl *grove_ffi.RPCClient, rpcid uint64, req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
+func RemoteProcedureCall2(cl *grove_ffi.RPCClient, rpcid uint64, req *grove_common.RPCRequest, rep *grove_common.RPCReply) bool {
 	rawReq := rpcReqEncode(req)
-	rawRep := make([]byte, 0)
-	errb := cl.RemoteProcedureCall(rpcid, &rawReq, &rawRep)
+	rawRep := new([]byte)
+	errb := cl.RemoteProcedureCall(rpcid, rawReq, rawRep)
 	if errb == false {
-		rpcReplyDecode(rawRep, reply)
+		rpcReplyDecode(*rawRep, rep)
 	}
 	return errb
 }

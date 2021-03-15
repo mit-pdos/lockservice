@@ -37,11 +37,7 @@ func (s *RPCHandler) Handle(req *grove_common.RawRPCRequest, rep *[]byte) error 
 func StartRPCServer(handlers map[uint64]grove_common.RawRpcFunc) {
 	s := &RPCHandler{}
 
-	if handlers == nil {
-		s.rpcHandlers = make(map[uint64]grove_common.RawRpcFunc)
-	} else {
-		s.rpcHandlers = handlers
-	}
+	s.rpcHandlers = handlers
 
     serv := rpc.NewServer()
 	serv.Register(s)
@@ -82,8 +78,9 @@ func MakeRPCClient(host string) *RPCClient {
 
 // This is how a client invokes a "raw" RPC
 // Returns true if there was an error
-func (cl *RPCClient) RemoteProcedureCall(rpcid uint64, args *[]byte, reply *[]byte) bool {
-	e := cl.Call("RPCHandler.Handle", &grove_common.RawRPCRequest{RpcId:rpcid, Data:*args}, reply)
+func (cl *RPCClient) RemoteProcedureCall(rpcid uint64, args []byte, reply *[]byte) bool {
+	*reply = make([]byte, 0)
+	e := cl.Call("RPCHandler.Handle", &grove_common.RawRPCRequest{RpcId:rpcid, Data:args}, reply)
 	if e != nil {
 		panic(e)
 	}
