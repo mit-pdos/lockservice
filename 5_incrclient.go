@@ -5,10 +5,10 @@ import (
 )
 
 type IncrClerk struct {
-	srv uint64 // IncrServer
-	client  *RPCClient
-	cid     uint64
-	seq     uint64
+	srv    uint64 // IncrServer
+	client *RPCClient
+	cid    uint64
+	seq    uint64
 }
 
 func MakeIncrClerk(srv uint64, cid uint64) *IncrClerk {

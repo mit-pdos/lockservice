@@ -1,9 +1,9 @@
 package lockservice
 
 import (
-	"sync"
 	"github.com/mit-pdos/lockservice/grove_common"
 	"github.com/mit-pdos/lockservice/grove_ffi"
+	"sync"
 )
 
 const KV_PUT uint64 = 1
@@ -24,8 +24,6 @@ func (ks *KVServer) put_core(args grove_common.RPCVals) uint64 {
 func (ks *KVServer) get_core(args grove_common.RPCVals) uint64 {
 	return ks.kvs[args.U64_1]
 }
-
-
 
 func (ks *KVServer) Put(req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
 	ks.mu.Lock()

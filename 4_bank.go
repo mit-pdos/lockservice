@@ -78,7 +78,7 @@ func MakeBank(acc uint64, balance uint64) Bank {
 	ks_handlers[KV_GET] = ks.Get
 	ksid := grove_ffi.AllocServer(ks_handlers)
 
-	return Bank{ls:lsid, ks:ksid}
+	return Bank{ls: lsid, ks: ksid}
 }
 
 func MakeBankClerk(b Bank, acc1 uint64, acc2 uint64, cid uint64) *BankClerk {

@@ -1,22 +1,22 @@
 package lockservice
 
 import (
-	"sync"
 	"github.com/mit-pdos/goose-nfsd/lockmap"
+	"sync"
 )
 
 type TxnResources struct {
-	key uint64
+	key      uint64
 	oldValue uint64
 }
 
 type ParticipantServer struct {
 	mu *sync.Mutex
 
-	lockmap *lockmap.LockMap
-	kvs map[uint64]uint64
-	txns map[uint64]TxnResources // in-progress transactions
-	finishedTxns map[uint64]bool // finished transactions
+	lockmap      *lockmap.LockMap
+	kvs          map[uint64]uint64
+	txns         map[uint64]TxnResources // in-progress transactions
+	finishedTxns map[uint64]bool         // finished transactions
 }
 
 // Precondition: emp
@@ -37,13 +37,13 @@ func (ps *ParticipantServer) PrepareIncrease(tid, key, amount uint64) uint64 {
 	}
 
 	ps.lockmap.Acquire(key)
-	if amount + ps.kvs[key] < ps.kvs[key] {
+	if amount+ps.kvs[key] < ps.kvs[key] {
 		ps.lockmap.Release(key)
 		ps.mu.Unlock()
 		return 1 // Vote No
 	}
 
-	ps.txns[tid] = TxnResources{key:key, oldValue:ps.kvs[key]}
+	ps.txns[tid] = TxnResources{key: key, oldValue: ps.kvs[key]}
 	// transaction now owns key
 	ps.kvs[key] += amount
 	// TODO(crash): save txn and state to disk
@@ -79,7 +79,7 @@ func (ps *ParticipantServer) PrepareDecrease(tid, key, amount uint64) uint64 {
 		ps.mu.Unlock()
 		return 1 // Vote No
 	}
-	ps.txns[tid] = TxnResources{key:key, oldValue:ps.kvs[key]}
+	ps.txns[tid] = TxnResources{key: key, oldValue: ps.kvs[key]}
 	ps.kvs[key] -= amount
 	// TODO(crash): save txn and state to disk
 	ps.mu.Unlock()

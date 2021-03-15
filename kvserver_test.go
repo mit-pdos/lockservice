@@ -2,10 +2,10 @@ package lockservice
 
 import (
 	"fmt"
-	"runtime"
-	"testing"
 	"github.com/mit-pdos/lockservice/grove_common"
 	"github.com/mit-pdos/lockservice/grove_ffi"
+	"runtime"
+	"testing"
 )
 
 func tp(t *testing.T, ck *KVClerk, k uint64, v uint64) {

@@ -1,15 +1,15 @@
 package lockservice
 
 import (
-	"github.com/mit-pdos/lockservice/grove_ffi"
 	"github.com/mit-pdos/lockservice/grove_common"
+	"github.com/mit-pdos/lockservice/grove_ffi"
 	"github.com/tchajed/marshal"
 	"sync"
 )
 
 type DurableKVServer struct {
-	mu *sync.Mutex
-	sv *RPCServer
+	mu  *sync.Mutex
+	sv  *RPCServer
 	kvs map[uint64]uint64
 }
 

@@ -1,10 +1,10 @@
 package lockservice
 
 import (
-	"github.com/tchajed/marshal"
-	"github.com/tchajed/goose/machine"
 	"github.com/mit-pdos/lockservice/grove_common"
 	"github.com/mit-pdos/lockservice/grove_ffi"
+	"github.com/tchajed/goose/machine"
+	"github.com/tchajed/marshal"
 )
 
 //
