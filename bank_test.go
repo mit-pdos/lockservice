@@ -1,6 +1,7 @@
 package lockservice
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
@@ -17,6 +18,7 @@ func ta(t *testing.T, ck *BankClerk, expected uint64) {
 }
 
 func TestBank(t *testing.T) {
+	fmt.Printf("Test: Bank ...\n")
 	b := MakeBank(0, 100)
 	ck1 := MakeBankClerk(b, 0, 1, nrand())
 	ck2 := MakeBankClerk(b, 0, 1, nrand())
@@ -36,4 +38,5 @@ func TestBank(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 	ta(t, ck3, 100)
+	fmt.Printf("  ... Passed\n")
 }

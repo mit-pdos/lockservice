@@ -1,36 +1,24 @@
 package lockservice
 
+import (
+	"github.com/tchajed/marshal"
+	"github.com/tchajed/goose/machine"
+	"github.com/mit-pdos/lockservice/grove_common"
+	"github.com/mit-pdos/lockservice/grove_ffi"
+)
+
 //
 // Common definitions for our RPC layer
 //
 
-type RPCVals struct {
-	U64_1 uint64
-	U64_2 uint64
-}
-
-type RPCRequest struct {
-	// Go's net/rpc requires that these field
-	// names start with upper case letters!
-	CID  uint64
-	Seq  uint64
-	Args RPCVals
-}
-type RPCReply struct {
-	Stale bool
-	Ret   uint64
-}
-
-type RpcFunc func(*RPCRequest, *RPCReply) bool
-
-type RpcCoreHandler func(args RPCVals) uint64
+type RpcCoreHandler func(args grove_common.RPCVals) uint64
 
 func CheckReplyTable(
 	lastSeq map[uint64]uint64,
 	lastReply map[uint64]uint64,
 	CID uint64,
 	Seq uint64,
-	reply *RPCReply,
+	reply *grove_common.RPCReply,
 ) bool {
 	last, ok := lastSeq[CID]
 	reply.Stale = false
@@ -46,19 +34,69 @@ func CheckReplyTable(
 	return false
 }
 
+func rpcReqEncode(req *grove_common.RPCRequest) []byte {
+	e := marshal.NewEnc(4 * 8)
+	e.PutInt(req.CID)
+	e.PutInt(req.Seq)
+	e.PutInt(req.Args.U64_1)
+	e.PutInt(req.Args.U64_2)
+	res := e.Finish()
+	machine.Linearize()
+	return res
+}
+
+func rpcReqDecode(data []byte, req *grove_common.RPCRequest) {
+	d := marshal.NewDec(data)
+	req.CID = d.GetInt()
+	req.Seq = d.GetInt()
+	req.Args.U64_1 = d.GetInt()
+	req.Args.U64_2 = d.GetInt()
+	machine.Linearize()
+}
+
+func rpcReplyEncode(reply *grove_common.RPCReply) []byte {
+	e := marshal.NewEnc(2 * 8)
+	e.PutBool(reply.Stale)
+	e.PutInt(reply.Ret)
+	res := e.Finish()
+	machine.Linearize()
+	return res
+}
+
+func rpcReplyDecode(data []byte, reply *grove_common.RPCReply) {
+	d := marshal.NewDec(data)
+	reply.Stale = d.GetBool()
+	reply.Ret = d.GetInt()
+	machine.Linearize()
+}
+
 // Emulate an RPC call over a lossy network.
 // Returns true iff server reported error or request "timed out".
 // For the "real thing", this should instead submit a request via the network.
-func RemoteProcedureCall(rpc RpcFunc, req *RPCRequest, reply *RPCReply) bool {
+func RemoteProcedureCall(host uint64, rpcid uint64, req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
+	reqdata := rpcReqEncode(req)
+
 	go func() {
-		dummy_reply := new(RPCReply)
+		dummy_reply := new(grove_common.RPCReply)
 		for {
-			rpc(req, dummy_reply)
+			rpc := grove_ffi.GetServer(host, rpcid)
+			decodedReq := new(grove_common.RPCRequest)
+			rpcReqDecode(reqdata, decodedReq)
+			rpc(decodedReq, dummy_reply)
 		}
 	}()
 
 	if nondet() {
-		return rpc(req, reply)
+		rpc := grove_ffi.GetServer(host, rpcid)
+		decodedReq := new(grove_common.RPCRequest)
+		rpcReqDecode(reqdata, decodedReq)
+
+		serverReply := new(grove_common.RPCReply)
+		ok := rpc(req, serverReply)
+
+		replydata := rpcReplyEncode(serverReply)
+		rpcReplyDecode(replydata, reply)
+		return ok
 	}
 	return true
 }
@@ -73,17 +111,17 @@ func MakeRPCClient(cid uint64) *RPCClient {
 	return &RPCClient{cid: cid, seq: 1}
 }
 
-func (cl *RPCClient) MakeRequest(rpc RpcFunc, args RPCVals) uint64 {
+func (cl *RPCClient) MakeRequest(host uint64, rpcid uint64, args grove_common.RPCVals) uint64 {
 	overflow_guard_incr(cl.seq)
 	// prepare the arguments.
-	req := &RPCRequest{Args: args, CID: cl.cid, Seq: cl.seq}
+	req := &grove_common.RPCRequest{Args: args, CID: cl.cid, Seq: cl.seq}
 	cl.seq = cl.seq + 1
 
 	// send an RPC request, wait for the reply.
 	var errb = false
-	reply := new(RPCReply)
+	reply := new(grove_common.RPCReply)
 	for {
-		errb = RemoteProcedureCall(rpc, req, reply)
+		errb = RemoteProcedureCall(host, rpcid, req, reply)
 		if errb == false {
 			break
 		}
@@ -107,7 +145,7 @@ func MakeRPCServer() *RPCServer {
 	return sv
 }
 
-func (sv *RPCServer) HandleRequest(core RpcCoreHandler, req *RPCRequest, reply *RPCReply) bool {
+func (sv *RPCServer) HandleRequest(core RpcCoreHandler, req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
 	if CheckReplyTable(sv.lastSeq, sv.lastReply, req.CID, req.Seq, reply) {
 	} else {
 		reply.Ret = core(req.Args)

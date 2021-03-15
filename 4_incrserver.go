@@ -1,10 +1,13 @@
 package lockservice
 
 import (
+	"github.com/mit-pdos/lockservice/grove_common"
 	"github.com/mit-pdos/lockservice/grove_ffi"
 	"github.com/tchajed/marshal"
 	"sync"
 )
+
+const IS_INCR uint64 = 1
 
 type IncrServer struct {
 	mu *sync.Mutex
@@ -19,7 +22,7 @@ type IncrServer struct {
 	kck *KVClerk
 }
 
-func (is *IncrServer) increment_core_unsafe(seq uint64, args RPCVals) uint64 {
+func (is *IncrServer) increment_core_unsafe(seq uint64, args grove_common.RPCVals) uint64 {
 	key := args.U64_1      // A
 	var oldv uint64        // A
 	oldv = is.kck.Get(key) // A
@@ -49,7 +52,7 @@ func (is *IncrServer) increment_core_unsafe(seq uint64, args RPCVals) uint64 {
 // TODO: test this
 // Probably won't try proving this version correct (first).
 //
-func (is *IncrServer) increment_core(seq uint64, args RPCVals) uint64 {
+func (is *IncrServer) increment_core(seq uint64, args grove_common.RPCVals) uint64 {
 	key := args.U64_1
 	var oldv uint64
 
@@ -87,7 +90,7 @@ func WriteDurableIncrServer(ks *IncrServer) {
 	return
 }
 
-func (is *IncrServer) Increment(req *RPCRequest, reply *RPCReply) bool {
+func (is *IncrServer) Increment(req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
 	is.mu.Lock()
 
 	if CheckReplyTable(is.sv.lastSeq, is.sv.lastReply, req.CID, req.Seq, reply) {

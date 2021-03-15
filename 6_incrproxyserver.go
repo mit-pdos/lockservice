@@ -2,18 +2,19 @@ package lockservice
 
 import (
 	"github.com/mit-pdos/lockservice/grove_ffi"
+	"github.com/mit-pdos/lockservice/grove_common"
 	"github.com/tchajed/marshal"
 )
 
 type IncrProxyServer struct {
 	sv *RPCServer
 
-	incrserver *IncrServer
+	incrserver uint64
 	ick        *IncrClerk
 	lastCID    uint64
 }
 
-func (is *IncrProxyServer) proxy_increment_core_unsafe(seq uint64, args RPCVals) uint64 {
+func (is *IncrProxyServer) proxy_increment_core_unsafe(seq uint64, args grove_common.RPCVals) uint64 {
 	key := args.U64_1
 	is.ick.Increment(key)
 	return 0
@@ -23,14 +24,14 @@ func (is *IncrProxyServer) proxy_increment_core_unsafe(seq uint64, args RPCVals)
 type ShortTermIncrClerk struct {
 	cid        uint64
 	seq        uint64
-	req        RPCRequest
-	incrserver *IncrServer
+	req        grove_common.RPCRequest
+	incrserver uint64
 }
 
-func (ck *ShortTermIncrClerk) PrepareRequest(args RPCVals) {
+func (ck *ShortTermIncrClerk) PrepareRequest(args grove_common.RPCVals) {
 	overflow_guard_incr(ck.seq)
 	// prepare the arguments.
-	ck.req = RPCRequest{Args: args, CID: ck.cid, Seq: ck.seq}
+	ck.req = grove_common.RPCRequest{Args: args, CID: ck.cid, Seq: ck.seq}
 	ck.seq = ck.seq + 1
 
 }
@@ -38,9 +39,9 @@ func (ck *ShortTermIncrClerk) PrepareRequest(args RPCVals) {
 func (ck *ShortTermIncrClerk) MakePreparedRequest() uint64 {
 	// send the already-prepared RPC request, wait for the reply.
 	var errb = false
-	reply := new(RPCReply)
+	reply := new(grove_common.RPCReply)
 	for {
-		errb = RemoteProcedureCall(ck.incrserver.Increment, &ck.req, reply)
+		errb = RemoteProcedureCall(ck.incrserver, IS_INCR, &ck.req, reply)
 		if errb == false {
 			break
 		}
@@ -49,7 +50,7 @@ func (ck *ShortTermIncrClerk) MakePreparedRequest() uint64 {
 	return reply.Ret
 }
 
-func DecodeShortTermIncrClerk(is *IncrServer, content []byte) *ShortTermIncrClerk {
+func DecodeShortTermIncrClerk(is uint64, content []byte) *ShortTermIncrClerk {
 	d := marshal.NewDec(content)
 	ck := new(ShortTermIncrClerk)
 	ck.incrserver = is
@@ -92,7 +93,7 @@ func (is *IncrProxyServer) MakeFreshIncrClerk() *ShortTermIncrClerk {
 	return ck_ptr
 }
 
-func (is *IncrProxyServer) proxy_increment_core(seq uint64, args RPCVals) uint64 {
+func (is *IncrProxyServer) proxy_increment_core(seq uint64, args grove_common.RPCVals) uint64 {
 	filename := "procy_incr_request_" + grove_ffi.U64ToString(seq)
 	var ck *ShortTermIncrClerk
 

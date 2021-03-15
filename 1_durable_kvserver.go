@@ -2,22 +2,23 @@ package lockservice
 
 import (
 	"github.com/mit-pdos/lockservice/grove_ffi"
+	"github.com/mit-pdos/lockservice/grove_common"
 	"github.com/tchajed/marshal"
 	"sync"
 )
 
-type KVServer struct {
+type DurableKVServer struct {
 	mu *sync.Mutex
 	sv *RPCServer
 	kvs map[uint64]uint64
 }
 
-func (ks *KVServer) put_core(args RPCVals) uint64 {
+func (ks *DurableKVServer) put_core(args grove_common.RPCVals) uint64 {
 	ks.kvs[args.U64_1] = args.U64_2
 	return 0
 }
 
-func (ks *KVServer) get_core(args RPCVals) uint64 {
+func (ks *DurableKVServer) get_core(args grove_common.RPCVals) uint64 {
 	return ks.kvs[args.U64_1]
 }
 
@@ -45,7 +46,7 @@ func DecMap(d *marshal.Dec) map[uint64]uint64 {
 
 // For now, there is only one kv server in the whole world
 // Assume it's in file "kvdur"
-func WriteDurableKVServer(ks *KVServer) {
+func WriteDurableKVServer(ks *DurableKVServer) {
 
 	// TODO: need  to make sure this doesn't overflow
 	num_bytes := uint64(8 * (2*len(ks.sv.lastSeq) + 2*len(ks.sv.lastSeq) + 2*len(ks.kvs) + 3))
@@ -58,13 +59,13 @@ func WriteDurableKVServer(ks *KVServer) {
 	return
 }
 
-func ReadDurableKVServer() *KVServer {
+func ReadDurableKVServer() *DurableKVServer {
 	content := grove_ffi.Read("kvdur")
 	if len(content) == 0 {
 		return nil
 	}
 	d := marshal.NewDec(content)
-	ks := new(KVServer)
+	ks := new(DurableKVServer)
 	sv := new(RPCServer)
 	sv.lastSeq = DecMap(&d)
 	sv.lastReply = DecMap(&d)
@@ -75,7 +76,7 @@ func ReadDurableKVServer() *KVServer {
 	return ks
 }
 
-func (ks *KVServer) Put(req *RPCRequest, reply *RPCReply) bool {
+func (ks *DurableKVServer) Put(req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
 	ks.mu.Lock()
 	r := ks.sv.HandleRequest(ks.put_core, req, reply)
 	WriteDurableKVServer(ks)
@@ -83,7 +84,7 @@ func (ks *KVServer) Put(req *RPCRequest, reply *RPCReply) bool {
 	return r
 }
 
-func (ks *KVServer) Get(req *RPCRequest, reply *RPCReply) bool {
+func (ks *DurableKVServer) Get(req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
 	ks.mu.Lock()
 	r := ks.sv.HandleRequest(ks.get_core, req, reply)
 	WriteDurableKVServer(ks)
@@ -91,7 +92,7 @@ func (ks *KVServer) Get(req *RPCRequest, reply *RPCReply) bool {
 	return r
 }
 
-func MakeKVServer() *KVServer {
+func MakeDurableKVServer() *DurableKVServer {
 	// If we alreay have some saved state, continue from there
 	ks_old := ReadDurableKVServer()
 	if ks_old != nil {
@@ -99,7 +100,7 @@ func MakeKVServer() *KVServer {
 	}
 
 	// Otherwise, we should make a brand new object
-	ks := new(KVServer)
+	ks := new(DurableKVServer)
 	ks.mu = new(sync.Mutex)
 	ks.kvs = make(map[uint64]uint64)
 	ks.sv = MakeRPCServer()

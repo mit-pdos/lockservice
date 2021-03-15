@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"runtime"
 	"testing"
+	"github.com/mit-pdos/lockservice/grove_common"
+	"github.com/mit-pdos/lockservice/grove_ffi"
 )
 
 func tp(t *testing.T, ck *KVClerk, k uint64, v uint64) {
@@ -24,7 +26,12 @@ func TestKVStore(t *testing.T) {
 
 	p := MakeKVServer()
 
-	ck1 := MakeKVClerk(p, nrand())
+	p_handlers := make(map[uint64]grove_common.RpcFunc)
+	p_handlers[KV_PUT] = p.Put
+	p_handlers[KV_GET] = p.Get
+	pid := grove_ffi.AllocServer(p_handlers)
+
+	ck1 := MakeKVClerk(pid, nrand())
 	tp(t, ck1, 0, 12)
 	tg(t, ck1, 0, 12)
 	tp(t, ck1, 0, 13)
