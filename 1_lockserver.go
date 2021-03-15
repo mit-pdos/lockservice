@@ -1,6 +1,11 @@
 package lockservice
 
+import (
+	"sync"
+)
+
 type LockServer struct {
+	mu *sync.Mutex
 	sv *RPCServer
 	// for each lock name, is it locked?
 	locks map[uint64]bool
@@ -44,14 +49,10 @@ func ReadDurableLockServer() *LockServer {
 // returns true iff error
 //
 func (ls *LockServer) TryLock(req *RPCRequest, reply *RPCReply) bool {
-	f := func(args RPCVals) uint64 {
-		return ls.tryLock_core(args)
-	}
-	fdur := func() {
-		WriteDurableLockServer(ls)
-	}
-	r := ls.sv.HandleRequest(f, fdur, req, reply)
+	ls.mu.Lock()
+	r := ls.sv.HandleRequest(ls.tryLock_core, req, reply)
 	WriteDurableLockServer(ls)
+	ls.mu.Unlock()
 	return r
 }
 
@@ -60,14 +61,10 @@ func (ls *LockServer) TryLock(req *RPCRequest, reply *RPCReply) bool {
 // returns true iff error
 //
 func (ls *LockServer) Unlock(req *RPCRequest, reply *RPCReply) bool {
-	f := func(args RPCVals) uint64 {
-		return ls.unlock_core(args)
-	}
-	fdur := func() {
-		WriteDurableLockServer(ls)
-	}
-	r := ls.sv.HandleRequest(f, fdur, req, reply)
+	ls.mu.Lock()
+	r := ls.sv.HandleRequest(ls.unlock_core, req, reply)
 	WriteDurableLockServer(ls)
+	ls.mu.Unlock()
 	return r
 }
 
@@ -78,6 +75,7 @@ func MakeLockServer() *LockServer {
 	}
 
 	ls := new(LockServer)
+	ls.mu = new(sync.Mutex)
 	ls.locks = make(map[uint64]bool)
 	ls.sv = MakeRPCServer()
 	return ls

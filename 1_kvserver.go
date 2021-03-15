@@ -7,8 +7,8 @@ import (
 )
 
 type KVServer struct {
+	mu *sync.Mutex
 	sv *RPCServer
-	// for each lock name, is it locked?
 	kvs map[uint64]uint64
 }
 
@@ -66,35 +66,29 @@ func ReadDurableKVServer() *KVServer {
 	d := marshal.NewDec(content)
 	ks := new(KVServer)
 	sv := new(RPCServer)
-	sv.mu = new(sync.Mutex)
 	sv.lastSeq = DecMap(&d)
 	sv.lastReply = DecMap(&d)
 	ks.kvs = DecMap(&d)
 	ks.sv = sv
+	ks.mu = new(sync.Mutex)
 
 	return ks
 }
 
 func (ks *KVServer) Put(req *RPCRequest, reply *RPCReply) bool {
-	return ks.sv.HandleRequest(
-		func(args RPCVals) uint64 {
-			return ks.put_core(args)
-		},
-		func() {
-			WriteDurableKVServer(ks)
-		},
-		req, reply)
+	ks.mu.Lock()
+	r := ks.sv.HandleRequest(ks.put_core, req, reply)
+	WriteDurableKVServer(ks)
+	ks.mu.Unlock()
+	return r
 }
 
 func (ks *KVServer) Get(req *RPCRequest, reply *RPCReply) bool {
-	return ks.sv.HandleRequest(
-		func(args RPCVals) uint64 {
-			return ks.get_core(args)
-		},
-		func() {
-			WriteDurableKVServer(ks)
-		},
-		req, reply)
+	ks.mu.Lock()
+	r := ks.sv.HandleRequest(ks.get_core, req, reply)
+	WriteDurableKVServer(ks)
+	ks.mu.Unlock()
+	return r
 }
 
 func MakeKVServer() *KVServer {
@@ -106,6 +100,7 @@ func MakeKVServer() *KVServer {
 
 	// Otherwise, we should make a brand new object
 	ks := new(KVServer)
+	ks.mu = new(sync.Mutex)
 	ks.kvs = make(map[uint64]uint64)
 	ks.sv = MakeRPCServer()
 	return ks

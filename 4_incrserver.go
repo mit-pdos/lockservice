@@ -3,9 +3,11 @@ package lockservice
 import (
 	"github.com/mit-pdos/lockservice/grove_ffi"
 	"github.com/tchajed/marshal"
+	"sync"
 )
 
 type IncrServer struct {
+	mu *sync.Mutex
 	sv *RPCServer
 
 	// Address of the KVServer; for now a pointer, but in real code would be IP
@@ -86,7 +88,7 @@ func WriteDurableIncrServer(ks *IncrServer) {
 }
 
 func (is *IncrServer) Increment(req *RPCRequest, reply *RPCReply) bool {
-	is.sv.mu.Lock()
+	is.mu.Lock()
 
 	if CheckReplyTable(is.sv.lastSeq, is.sv.lastReply, req.CID, req.Seq, reply) {
 	} else {
@@ -97,7 +99,7 @@ func (is *IncrServer) Increment(req *RPCRequest, reply *RPCReply) bool {
 		WriteDurableIncrServer(is)
 	}
 
-	is.sv.mu.Unlock()
+	is.mu.Unlock()
 	return false
 }
 
@@ -115,6 +117,7 @@ func MakeIncrServer(kvserver *KVServer) *IncrServer {
 
 	// Otherwise, we should make a brand new object
 	is := new(IncrServer)
+	is.mu = new(sync.Mutex)
 	is.sv = MakeRPCServer()
 	is.kvserver = kvserver
 	return is

@@ -1,9 +1,5 @@
 package lockservice
 
-import (
-	"sync"
-)
-
 //
 // Common definitions for our RPC layer
 //
@@ -28,8 +24,6 @@ type RPCReply struct {
 type RpcFunc func(*RPCRequest, *RPCReply) bool
 
 type RpcCoreHandler func(args RPCVals) uint64
-
-type RpcCorePersister func()
 
 func CheckReplyTable(
 	lastSeq map[uint64]uint64,
@@ -101,8 +95,6 @@ func (cl *RPCClient) MakeRequest(rpc RpcFunc, args RPCVals) uint64 {
 // Common code for RPC servers: locking and handling of stale and redundant requests through
 // the reply table.
 type RPCServer struct {
-	mu *sync.Mutex
-
 	// each CID's last sequence # and the corresponding reply
 	lastSeq   map[uint64]uint64
 	lastReply map[uint64]uint64
@@ -112,21 +104,15 @@ func MakeRPCServer() *RPCServer {
 	sv := new(RPCServer)
 	sv.lastSeq = make(map[uint64]uint64)
 	sv.lastReply = make(map[uint64]uint64)
-	sv.mu = new(sync.Mutex)
 	return sv
 }
 
-func (sv *RPCServer) HandleRequest(core RpcCoreHandler, makeDurable RpcCorePersister, req *RPCRequest, reply *RPCReply) bool {
-	sv.mu.Lock()
-
+func (sv *RPCServer) HandleRequest(core RpcCoreHandler, req *RPCRequest, reply *RPCReply) bool {
 	if CheckReplyTable(sv.lastSeq, sv.lastReply, req.CID, req.Seq, reply) {
 	} else {
 		reply.Ret = core(req.Args)
 		sv.lastReply[req.CID] = reply.Ret
-
-		makeDurable()
 	}
 
-	sv.mu.Unlock()
 	return false
 }
