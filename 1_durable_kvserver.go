@@ -22,6 +22,15 @@ func (ks *DurableKVServer) get_core(args grove_common.RPCVals) uint64 {
 	return ks.kvs[args.U64_1]
 }
 
+func (ks *DurableKVServer) cas_core(args grove_common.RPCVals) uint64 {
+	r := ks.kvs[args.U64_1]
+	if r == args.U64_2 {
+		ks.kvs[args.U64_1] = args.U64_2 // U64_3
+		return 1
+	}
+	return 0
+}
+
 // requires (2n + 1) uint64s worth of space in the encoder
 func EncMap(e *marshal.Enc, m map[uint64]uint64) {
 	e.PutInt(uint64(len(m)))
@@ -87,7 +96,15 @@ func (ks *DurableKVServer) Put(req *grove_common.RPCRequest, reply *grove_common
 func (ks *DurableKVServer) Get(req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
 	ks.mu.Lock()
 	r := ks.sv.HandleRequest(ks.get_core, req, reply)
-	WriteDurableKVServer(ks)
+	WriteDurableKVServer(ks) // for updating reply table
+	ks.mu.Unlock()
+	return r
+}
+
+func (ks *DurableKVServer) CAS(req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
+	ks.mu.Lock()
+	r := ks.sv.HandleRequest(ks.cas_core, req, reply)
+	WriteDurableKVServer(ks) // for updating reply table
 	ks.mu.Unlock()
 	return r
 }
@@ -105,4 +122,12 @@ func MakeDurableKVServer() *DurableKVServer {
 	ks.kvs = make(map[uint64]uint64)
 	ks.sv = MakeRPCServer()
 	return ks
+}
+
+// Does not return
+func (ks *DurableKVServer) Start() {
+	handlers := make(map[uint64]grove_common.RawRpcFunc)
+	// handlers[KV_PUT] = ks.Put
+	// handlers[KV_GET] = ks.Get
+	grove_ffi.StartRPCServer(handlers)
 }

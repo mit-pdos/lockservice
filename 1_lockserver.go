@@ -1,5 +1,7 @@
 package lockservice
 
+// non-crash safe lockservice
+
 import (
 	"github.com/mit-pdos/lockservice/grove_common"
 	"sync"

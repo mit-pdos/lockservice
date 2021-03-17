@@ -1,5 +1,16 @@
 package grove_common
 
+type RawRPCRequest struct {
+	RpcId uint64
+	Data []byte
+}
+
+type RawRPCReply struct {
+	Data []byte
+}
+
+type RawRpcFunc func([]byte, *[]byte) bool
+
 //
 // Common definitions for our RPC layer
 //
@@ -16,6 +27,7 @@ type RPCRequest struct {
 	Seq  uint64
 	Args RPCVals
 }
+
 type RPCReply struct {
 	Stale bool
 	Ret   uint64

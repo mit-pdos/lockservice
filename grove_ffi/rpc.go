@@ -1,35 +1,74 @@
 package grove_ffi
 
 import (
-	"sync"
+	"fmt"
+	"net"
+	"net/rpc"
+	"log"
+	"net/http"
 	"github.com/mit-pdos/lockservice/grove_common"
 )
 
-// rpcHandlers describes the RpcFunc handler that will run
-// when an RPC is issued to some machine (first key) to invoke
-// a specific RPC number (second key).
-var rpcHandlers map[uint64]map[uint64]grove_common.RpcFunc
-var rpcNextHost uint64
-var rpcHandlersLock sync.Mutex
+var port uint64
 
-func AllocServer(handlers map[uint64]grove_common.RpcFunc) uint64 {
-	rpcHandlersLock.Lock()
-	defer rpcHandlersLock.Unlock()
-
-	id := rpcNextHost
-	rpcNextHost = rpcNextHost + 1
-
-	if rpcHandlers == nil {
-		rpcHandlers = make(map[uint64]map[uint64]grove_common.RpcFunc)
-	}
-
-	rpcHandlers[id] = handlers
-	return id
+// this is NOT exposed in the FFI. This just allows us to have StartServer()
+// serve at different ports on the same host without exposing port numbers to
+// proof-land
+func SetPort(p uint64) {
+	port = p
 }
 
-func GetServer(host uint64, rpc uint64) grove_common.RpcFunc {
-	rpcHandlersLock.Lock()
-	defer rpcHandlersLock.Unlock()
+// shim so we can use net/rpc
+// net/rpc does the work of managing the network connections and matching up
+// responses to their requests, which we'll eventually want to do ourselves.
+type RPCHandler struct {
+	// rpcHandlers describes the RawRpcFunc handler that will run
+	// when an RPC with a specific RPC number (the key) is invoked.
+	rpcHandlers map[uint64]grove_common.RawRpcFunc
+}
 
-	return rpcHandlers[host][rpc]
+func (s *RPCHandler) Handle(req *grove_common.RawRPCRequest, rep *grove_common.RawRPCReply) error {
+	if s.rpcHandlers[req.RpcId](req.Data, &rep.Data) { // check for error
+		panic("Error in RPC handler")
+	}
+	return nil
+}
+
+// starts running an RPC server with the given functions at the corresponding
+// endpoints; never returns
+func StartRPCServer(handlers map[uint64]grove_common.RawRpcFunc) {
+	s := RPCHandler{}
+
+	if handlers == nil {
+		s.rpcHandlers = make(map[uint64]grove_common.RawRpcFunc)
+	} else {
+		s.rpcHandlers = handlers
+	}
+
+	rpc.Register(s)
+	rpc.HandleHTTP()
+	l, e := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if e != nil {
+		panic(e)
+	}
+	func() {
+		log.Fatal(http.Serve(l, nil))
+	}()
+}
+
+type RPCClient struct {
+	rpc.Client
+}
+
+func MakeRPCClient(host string) *RPCClient {
+	cl, err := rpc.DialHTTP("tcp", host)
+	if err != nil {
+		panic(err)
+	}
+	return &RPCClient{*cl}
+}
+
+// This is how a client invokes a "raw" RPC
+func (cl *RPCClient) RemoteProcedureCall(rpcid uint64, args *[]byte, reply *[]byte) bool {
+	return cl.Call("RPCHandler.Handle", &grove_common.RawRPCRequest{RpcId:rpcid, Data:*args}, reply) != nil
 }

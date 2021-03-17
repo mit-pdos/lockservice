@@ -1,5 +1,7 @@
 package lockservice
 
+// non-crash safe kv service
+
 import (
 	"github.com/mit-pdos/lockservice/grove_common"
 	"github.com/mit-pdos/lockservice/grove_ffi"
@@ -47,11 +49,9 @@ func MakeKVServer() *KVServer {
 	return ks
 }
 
-func (ks *KVServer) AllocServer() uint64 {
-	handlers := make(map[uint64]grove_common.RpcFunc)
-	handlers[KV_PUT] = ks.Put
-	handlers[KV_GET] = ks.Get
-	host := grove_ffi.AllocServer(handlers)
-
-	return host
+func (ks *KVServer) Start() {
+	handlers := make(map[uint64]grove_common.RawRpcFunc)
+	handlers[KV_PUT] = ConjugateRpcFunc(ks.Put)
+	handlers[KV_GET] = ConjugateRpcFunc(ks.Get)
+	grove_ffi.StartRPCServer(handlers)
 }

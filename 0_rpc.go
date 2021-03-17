@@ -11,7 +11,21 @@ import (
 // Common definitions for our RPC layer
 //
 
+// TODO: rename this stuff to refer to "reply table" or some such
 type RpcCoreHandler func(args grove_common.RPCVals) uint64
+
+// maps r -> d^{-1} r d, where d is the decode function and d^{-1} is the encode
+// function
+func ConjugateRpcFunc(r grove_common.RpcFunc) grove_common.RawRpcFunc {
+	return func(rawReq []byte, rawRep *[]byte) bool {
+		req := new(grove_common.RPCRequest)
+		rep := new(grove_common.RPCReply)
+		rpcReqDecode(rawReq, req)
+		ret := r(req, rep)
+		*rawRep = rpcReplyEncode(rep)
+		return ret
+	}
+}
 
 func CheckReplyTable(
 	lastSeq map[uint64]uint64,
@@ -70,67 +84,50 @@ func rpcReplyDecode(data []byte, reply *grove_common.RPCReply) {
 	machine.Linearize()
 }
 
-// Emulate an RPC call over a lossy network.
-// Returns true iff server reported error or request "timed out".
-// For the "real thing", this should instead submit a request via the network.
-func RemoteProcedureCall(host uint64, rpcid uint64, req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
-	reqdata := rpcReqEncode(req)
-
-	go func() {
-		dummy_reply := new(grove_common.RPCReply)
-		for {
-			rpc := grove_ffi.GetServer(host, rpcid)
-			decodedReq := new(grove_common.RPCRequest)
-			rpcReqDecode(reqdata, decodedReq)
-			rpc(decodedReq, dummy_reply)
-		}
-	}()
-
-	if nondet() {
-		rpc := grove_ffi.GetServer(host, rpcid)
-		decodedReq := new(grove_common.RPCRequest)
-		rpcReqDecode(reqdata, decodedReq)
-
-		serverReply := new(grove_common.RPCReply)
-		ok := rpc(req, serverReply)
-
-		replydata := rpcReplyEncode(serverReply)
-		rpcReplyDecode(replydata, reply)
-		return ok
-	}
-	return true
-}
-
 // Common code for RPC clients: tracking of CID and next sequence number.
 type RPCClient struct {
 	cid uint64
 	seq uint64
+	rawCl *grove_ffi.RPCClient
 }
 
-func MakeRPCClient(cid uint64) *RPCClient {
-	return &RPCClient{cid: cid, seq: 1}
+func MakeRPCClient(host string, cid uint64) *RPCClient {
+	return &RPCClient{cid: cid, seq: 1, rawCl:grove_ffi.MakeRPCClient(host)}
 }
 
-func (cl *RPCClient) MakeRequest(host uint64, rpcid uint64, args grove_common.RPCVals) uint64 {
+// 2 refers to the number of u64s in args
+func RemoteProcedureCall2(cl *grove_ffi.RPCClient, rpcid uint64, req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
+	rawReq := rpcReqEncode(req)
+	rawRep := make([]byte, 0)
+	errb := cl.RemoteProcedureCall(rpcid, &rawReq, &rawRep)
+	reply = new(grove_common.RPCReply)
+	rpcReplyDecode(rawRep, reply)
+	return errb
+}
+
+func (cl *RPCClient) MakeRequest(rpcid uint64, args grove_common.RPCVals) uint64 {
 	overflow_guard_incr(cl.seq)
 	// prepare the arguments.
 	req := &grove_common.RPCRequest{Args: args, CID: cl.cid, Seq: cl.seq}
 	cl.seq = cl.seq + 1
 
+	rawReq := rpcReqEncode(req)
+	rawRep := make([]byte, 0)
 	// send an RPC request, wait for the reply.
 	var errb = false
-	reply := new(grove_common.RPCReply)
 	for {
-		errb = RemoteProcedureCall(host, rpcid, req, reply)
+		errb = cl.rawCl.RemoteProcedureCall(rpcid, &rawReq, &rawRep)
 		if errb == false {
 			break
 		}
 		continue
 	}
+	reply := new(grove_common.RPCReply)
+	rpcReplyDecode(rawRep, reply)
 	return reply.Ret
 }
 
-// Common code for RPC servers: locking and handling of stale and redundant requests through
+// Common code for RPC servers: handling of stale and redundant requests through
 // the reply table.
 type RPCServer struct {
 	// each CID's last sequence # and the corresponding reply

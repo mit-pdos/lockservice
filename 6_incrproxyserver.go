@@ -9,7 +9,7 @@ import (
 type IncrProxyServer struct {
 	sv *RPCServer
 
-	incrserver uint64
+	incrserver string
 	ick        *IncrClerk
 	lastCID    uint64
 }
@@ -25,7 +25,7 @@ type ShortTermIncrClerk struct {
 	cid        uint64
 	seq        uint64
 	req        grove_common.RPCRequest
-	incrserver uint64
+	incrserver string
 }
 
 func (ck *ShortTermIncrClerk) PrepareRequest(args grove_common.RPCVals) {
@@ -40,8 +40,9 @@ func (ck *ShortTermIncrClerk) MakePreparedRequest() uint64 {
 	// send the already-prepared RPC request, wait for the reply.
 	var errb = false
 	reply := new(grove_common.RPCReply)
+	cl := grove_ffi.MakeRPCClient(ck.incrserver)
 	for {
-		errb = RemoteProcedureCall(ck.incrserver, IS_INCR, &ck.req, reply)
+		errb = RemoteProcedureCall2(cl, IS_INCR, &ck.req, reply)
 		if errb == false {
 			break
 		}
@@ -50,7 +51,7 @@ func (ck *ShortTermIncrClerk) MakePreparedRequest() uint64 {
 	return reply.Ret
 }
 
-func DecodeShortTermIncrClerk(is uint64, content []byte) *ShortTermIncrClerk {
+func DecodeShortTermIncrClerk(is string, content []byte) *ShortTermIncrClerk {
 	d := marshal.NewDec(content)
 	ck := new(ShortTermIncrClerk)
 	ck.incrserver = is
