@@ -35,7 +35,7 @@ func (s *RPCHandler) Handle(req *grove_common.RawRPCRequest, rep *[]byte) error 
 }
 
 // starts running an RPC server with the given functions at the corresponding
-// endpoints; never returns
+// endpoints; returns immediately, starting server in background
 func StartRPCServer(handlers map[uint64]grove_common.RawRpcFunc) {
 	s := &RPCHandler{}
 
@@ -66,7 +66,7 @@ func StartRPCServer(handlers map[uint64]grove_common.RawRpcFunc) {
 	if e != nil {
 		panic(e)
 	}
-	func() {
+	go func() {
 		log.Fatal(http.Serve(l, mux))
 	}()
 }

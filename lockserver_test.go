@@ -38,10 +38,9 @@ func TestBasicConcurrent(t *testing.T) {
 
 	runtime.GOMAXPROCS(100)
 
-	p := MakeLockServer()
 	log.Printf("Starting lockserver\n")
 	grove_ffi.SetPort(12300)
-	go p.Start()
+	MakeLockServer().Start()
 
 	ck1 := MakeClerk("localhost:12300", nrand())
 	ck2 := MakeClerk("localhost:12300", nrand())
