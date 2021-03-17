@@ -14,7 +14,7 @@ import (
 // TODO: rename this stuff to refer to "reply table" or some such
 type RpcCoreHandler func(args grove_common.RPCVals) uint64
 
-// maps r -> d^{-1} r d, where d is the decode function and d^{-1} is the encode
+// Essentially maps r -> e r e^{-1}, where e is the encode function and e^{-1} is decode
 // function
 func ConjugateRpcFunc(r grove_common.RpcFunc) grove_common.RawRpcFunc {
 	return func(rawReq []byte, rawRep *[]byte) bool {
@@ -86,13 +86,13 @@ func rpcReplyDecode(data []byte, reply *grove_common.RPCReply) {
 
 // Common code for RPC clients: tracking of CID and next sequence number.
 type RPCClient struct {
-	cid uint64
-	seq uint64
+	cid   uint64
+	seq   uint64
 	rawCl *grove_ffi.RPCClient
 }
 
 func MakeRPCClient(host string, cid uint64) *RPCClient {
-	return &RPCClient{cid: cid, seq: 1, rawCl:grove_ffi.MakeRPCClient(host)}
+	return &RPCClient{cid: cid, seq: 1, rawCl: grove_ffi.MakeRPCClient(host)}
 }
 
 // 2 refers to the number of u64s in args

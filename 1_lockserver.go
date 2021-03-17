@@ -4,6 +4,7 @@ package lockservice
 
 import (
 	"github.com/mit-pdos/lockservice/grove_common"
+	"github.com/mit-pdos/lockservice/grove_ffi"
 	"sync"
 )
 
@@ -64,4 +65,11 @@ func MakeLockServer() *LockServer {
 	ls.locks = make(map[uint64]bool)
 	ls.sv = MakeRPCServer()
 	return ls
+}
+
+func (ls *LockServer) Start() {
+	handlers := make(map[uint64]grove_common.RawRpcFunc)
+	handlers[LOCK_TRYLOCK] = ConjugateRpcFunc(ls.TryLock)
+	handlers[LOCK_UNLOCK] = ConjugateRpcFunc(ls.Unlock)
+	grove_ffi.StartRPCServer(handlers)
 }

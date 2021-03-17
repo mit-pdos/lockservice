@@ -27,8 +27,8 @@ type RPCHandler struct {
 	rpcHandlers map[uint64]grove_common.RawRpcFunc
 }
 
-func (s *RPCHandler) Handle(req *grove_common.RawRPCRequest, rep *grove_common.RawRPCReply) error {
-	if s.rpcHandlers[req.RpcId](req.Data, &rep.Data) { // check for error
+func (s *RPCHandler) Handle(req *grove_common.RawRPCRequest, rep *[]byte) error {
+	if s.rpcHandlers[req.RpcId](req.Data, rep) { // check for error
 		panic("Error in RPC handler")
 	}
 	return nil
@@ -37,7 +37,7 @@ func (s *RPCHandler) Handle(req *grove_common.RawRPCRequest, rep *grove_common.R
 // starts running an RPC server with the given functions at the corresponding
 // endpoints; never returns
 func StartRPCServer(handlers map[uint64]grove_common.RawRpcFunc) {
-	s := RPCHandler{}
+	s := &RPCHandler{}
 
 	if handlers == nil {
 		s.rpcHandlers = make(map[uint64]grove_common.RawRpcFunc)
@@ -69,6 +69,11 @@ func MakeRPCClient(host string) *RPCClient {
 }
 
 // This is how a client invokes a "raw" RPC
+// Returns true if there was an error
 func (cl *RPCClient) RemoteProcedureCall(rpcid uint64, args *[]byte, reply *[]byte) bool {
-	return cl.Call("RPCHandler.Handle", &grove_common.RawRPCRequest{RpcId:rpcid, Data:*args}, reply) != nil
+	e := cl.Call("RPCHandler.Handle", &grove_common.RawRPCRequest{RpcId:rpcid, Data:*args}, reply)
+	if e != nil {
+		panic(e)
+	}
+	return false
 }

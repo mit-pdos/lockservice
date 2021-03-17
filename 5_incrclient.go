@@ -5,7 +5,7 @@ import (
 )
 
 type IncrClerk struct {
-	host    string // IncrServer
+	host   string // IncrServer
 	client *RPCClient
 	cid    uint64
 	seq    uint64

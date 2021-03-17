@@ -9,8 +9,8 @@ import (
 // and maintains a little state.
 //
 type Clerk struct {
-	host string
-	client  *RPCClient
+	host   string
+	client *RPCClient
 }
 
 const LOCK_TRYLOCK uint64 = 1

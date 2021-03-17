@@ -7,10 +7,10 @@ import (
 )
 
 type KVClerk struct {
-	host string
-	client  *RPCClient
-	cid     uint64
-	seq     uint64
+	host   string
+	client *RPCClient
+	cid    uint64
+	seq    uint64
 }
 
 func MakeKVClerk(host string, cid uint64) *KVClerk {

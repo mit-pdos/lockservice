@@ -3,9 +3,10 @@ package lockservice
 import (
 	crand "crypto/rand"
 	"fmt"
-	"github.com/mit-pdos/lockservice/grove_common"
 	"github.com/mit-pdos/lockservice/grove_ffi"
+	"log"
 	"math/big"
+	"os"
 	"runtime"
 	"sync"
 	"testing"
@@ -36,17 +37,8 @@ func tu(t *testing.T, ck *Clerk, lockname uint64, expected bool) {
 func TestBasicConcurrent(t *testing.T) {
 	fmt.Printf("Test: Basic concurrent lock/unlock ...\n")
 
-	runtime.GOMAXPROCS(100)
-
-	p := MakeLockServer()
-
-	p_handlers := make(map[uint64]grove_common.RpcFunc)
-	p_handlers[LOCK_TRYLOCK] = p.TryLock
-	p_handlers[LOCK_UNLOCK] = p.Unlock
-	pid := grove_ffi.AllocServer(p_handlers)
-
-	ck1 := MakeClerk(pid, nrand())
-	ck2 := MakeClerk(pid, nrand())
+	ck1 := MakeClerk("localhost:12345", nrand())
+	ck2 := MakeClerk("localhost:12345", nrand())
 
 	val := 0
 
@@ -76,4 +68,16 @@ func TestBasicConcurrent(t *testing.T) {
 	}
 
 	fmt.Printf("  ... Passed\n")
+}
+
+func TestMain(m *testing.M) {
+	runtime.GOMAXPROCS(100)
+
+	grove_ffi.SetPort(12345)
+	p := MakeLockServer()
+	log.Printf("Starting lockserver\n")
+	go p.Start()
+
+	code := m.Run()
+	os.Exit(code)
 }
