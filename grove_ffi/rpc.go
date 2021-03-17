@@ -28,9 +28,7 @@ type RPCHandler struct {
 }
 
 func (s *RPCHandler) Handle(req *grove_common.RawRPCRequest, rep *[]byte) error {
-	if s.rpcHandlers[req.RpcId](req.Data, rep) { // check for error
-		panic("Error in RPC handler")
-	}
+	s.rpcHandlers[req.RpcId](req.Data, rep)
 	return nil
 }
 
@@ -62,7 +60,6 @@ func StartRPCServer(handlers map[uint64]grove_common.RawRpcFunc) {
     // ===========================
 
 	l, e := net.Listen("tcp", fmt.Sprintf(":%d", port))
-	log.Printf("Serving")
 	if e != nil {
 		panic(e)
 	}

@@ -7,6 +7,9 @@ import (
 	"sync"
 )
 
+// Basic durable KV server that saves the entire state on disk at the end of
+// every request. This should probably be made somewhat obsolete by gokv.
+
 type DurableKVServer struct {
 	mu  *sync.Mutex
 	sv  *RPCServer
@@ -25,7 +28,7 @@ func (ks *DurableKVServer) get_core(args grove_common.RPCVals) uint64 {
 func (ks *DurableKVServer) cas_core(args grove_common.RPCVals) uint64 {
 	r := ks.kvs[args.U64_1]
 	if r == args.U64_2 {
-		ks.kvs[args.U64_1] = args.U64_2 // U64_3
+		ks.kvs[args.U64_1] = args.U64_2 // FIXME: U64_3
 		return 1
 	}
 	return 0
@@ -85,28 +88,28 @@ func ReadDurableKVServer() *DurableKVServer {
 	return ks
 }
 
-func (ks *DurableKVServer) Put(req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
+func (ks *DurableKVServer) Put(req *grove_common.RPCRequest, reply *grove_common.RPCReply) {
 	ks.mu.Lock()
-	r := ks.sv.HandleRequest(ks.put_core, req, reply)
+	ks.sv.HandleRequest(ks.put_core, req, reply)
 	WriteDurableKVServer(ks)
 	ks.mu.Unlock()
-	return r
+	return
 }
 
-func (ks *DurableKVServer) Get(req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
+func (ks *DurableKVServer) Get(req *grove_common.RPCRequest, reply *grove_common.RPCReply) {
 	ks.mu.Lock()
-	r := ks.sv.HandleRequest(ks.get_core, req, reply)
+	ks.sv.HandleRequest(ks.get_core, req, reply)
 	WriteDurableKVServer(ks) // for updating reply table
 	ks.mu.Unlock()
-	return r
+	return
 }
 
-func (ks *DurableKVServer) CAS(req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
+func (ks *DurableKVServer) CAS(req *grove_common.RPCRequest, reply *grove_common.RPCReply) {
 	ks.mu.Lock()
-	r := ks.sv.HandleRequest(ks.cas_core, req, reply)
+	ks.sv.HandleRequest(ks.cas_core, req, reply)
 	WriteDurableKVServer(ks) // for updating reply table
 	ks.mu.Unlock()
-	return r
+	return
 }
 
 func MakeDurableKVServer() *DurableKVServer {

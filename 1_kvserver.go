@@ -27,18 +27,18 @@ func (ks *KVServer) get_core(args grove_common.RPCVals) uint64 {
 	return ks.kvs[args.U64_1]
 }
 
-func (ks *KVServer) Put(req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
+func (ks *KVServer) Put(req *grove_common.RPCRequest, reply *grove_common.RPCReply) {
 	ks.mu.Lock()
-	r := ks.sv.HandleRequest(ks.put_core, req, reply)
+	ks.sv.HandleRequest(ks.put_core, req, reply)
 	ks.mu.Unlock()
-	return r
+	return
 }
 
-func (ks *KVServer) Get(req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
+func (ks *KVServer) Get(req *grove_common.RPCRequest, reply *grove_common.RPCReply) {
 	ks.mu.Lock()
-	r := ks.sv.HandleRequest(ks.get_core, req, reply)
+	ks.sv.HandleRequest(ks.get_core, req, reply)
 	ks.mu.Unlock()
-	return r
+	return
 }
 
 func MakeKVServer() *KVServer {

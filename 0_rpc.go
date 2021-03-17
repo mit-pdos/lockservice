@@ -3,7 +3,6 @@ package lockservice
 import (
 	"github.com/mit-pdos/lockservice/grove_common"
 	"github.com/mit-pdos/lockservice/grove_ffi"
-	"github.com/tchajed/goose/machine"
 	"github.com/tchajed/marshal"
 )
 
@@ -13,19 +12,6 @@ import (
 
 // TODO: rename this stuff to refer to "reply table" or some such
 type RpcCoreHandler func(args grove_common.RPCVals) uint64
-
-// Essentially maps r -> e r e^{-1}, where e is the encode function and e^{-1} is decode
-// function
-func ConjugateRpcFunc(r grove_common.RpcFunc) grove_common.RawRpcFunc {
-	return func(rawReq []byte, rawRep *[]byte) bool {
-		req := new(grove_common.RPCRequest)
-		rep := new(grove_common.RPCReply)
-		rpcReqDecode(rawReq, req)
-		ret := r(req, rep)
-		*rawRep = rpcReplyEncode(rep)
-		return ret
-	}
-}
 
 func CheckReplyTable(
 	lastSeq map[uint64]uint64,
@@ -55,7 +41,6 @@ func rpcReqEncode(req *grove_common.RPCRequest) []byte {
 	e.PutInt(req.Args.U64_1)
 	e.PutInt(req.Args.U64_2)
 	res := e.Finish()
-	machine.Linearize()
 	return res
 }
 
@@ -65,7 +50,6 @@ func rpcReqDecode(data []byte, req *grove_common.RPCRequest) {
 	req.Seq = d.GetInt()
 	req.Args.U64_1 = d.GetInt()
 	req.Args.U64_2 = d.GetInt()
-	machine.Linearize()
 }
 
 func rpcReplyEncode(reply *grove_common.RPCReply) []byte {
@@ -73,7 +57,6 @@ func rpcReplyEncode(reply *grove_common.RPCReply) []byte {
 	e.PutBool(reply.Stale)
 	e.PutInt(reply.Ret)
 	res := e.Finish()
-	machine.Linearize()
 	return res
 }
 
@@ -81,8 +64,21 @@ func rpcReplyDecode(data []byte, reply *grove_common.RPCReply) {
 	d := marshal.NewDec(data)
 	reply.Stale = d.GetBool()
 	reply.Ret = d.GetInt()
-	machine.Linearize()
 }
+
+// Essentially maps r -> e r e^{-1}, where e is the encode function and e^{-1} is decode
+// function
+func ConjugateRpcFunc(r grove_common.RpcFunc) grove_common.RawRpcFunc {
+	return func(rawReq []byte, rawRep *[]byte) {
+		req := new(grove_common.RPCRequest)
+		rep := new(grove_common.RPCReply)
+		rpcReqDecode(rawReq, req)
+		r(req, rep)
+		*rawRep = rpcReplyEncode(rep)
+		return
+	}
+}
+
 
 // Common code for RPC clients: tracking of CID and next sequence number.
 type RPCClient struct {
@@ -100,8 +96,9 @@ func RemoteProcedureCall2(cl *grove_ffi.RPCClient, rpcid uint64, req *grove_comm
 	rawReq := rpcReqEncode(req)
 	rawRep := make([]byte, 0)
 	errb := cl.RemoteProcedureCall(rpcid, &rawReq, &rawRep)
-	reply = new(grove_common.RPCReply)
-	rpcReplyDecode(rawRep, reply)
+	if errb == false {
+		rpcReplyDecode(rawRep, reply)
+	}
 	return errb
 }
 
@@ -109,21 +106,17 @@ func (cl *RPCClient) MakeRequest(rpcid uint64, args grove_common.RPCVals) uint64
 	overflow_guard_incr(cl.seq)
 	// prepare the arguments.
 	req := &grove_common.RPCRequest{Args: args, CID: cl.cid, Seq: cl.seq}
+	reply := new(grove_common.RPCReply)
 	cl.seq = cl.seq + 1
 
-	rawReq := rpcReqEncode(req)
-	rawRep := make([]byte, 0)
-	// send an RPC request, wait for the reply.
 	var errb = false
 	for {
-		errb = cl.rawCl.RemoteProcedureCall(rpcid, &rawReq, &rawRep)
+		errb = RemoteProcedureCall2(cl.rawCl, rpcid, req, reply)
 		if errb == false {
 			break
 		}
 		continue
 	}
-	reply := new(grove_common.RPCReply)
-	rpcReplyDecode(rawRep, reply)
 	return reply.Ret
 }
 
@@ -142,12 +135,12 @@ func MakeRPCServer() *RPCServer {
 	return sv
 }
 
-func (sv *RPCServer) HandleRequest(core RpcCoreHandler, req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
+func (sv *RPCServer) HandleRequest(core RpcCoreHandler, req *grove_common.RPCRequest, reply *grove_common.RPCReply) {
 	if CheckReplyTable(sv.lastSeq, sv.lastReply, req.CID, req.Seq, reply) {
 	} else {
 		reply.Ret = core(req.Args)
 		sv.lastReply[req.CID] = reply.Ret
 	}
 
-	return false
+	return
 }

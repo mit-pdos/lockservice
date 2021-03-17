@@ -9,7 +9,7 @@ type RawRPCReply struct {
 	Data []byte
 }
 
-type RawRpcFunc func([]byte, *[]byte) bool
+type RawRpcFunc func([]byte, *[]byte)
 
 //
 // Common definitions for our RPC layer
@@ -33,4 +33,4 @@ type RPCReply struct {
 	Ret   uint64
 }
 
-type RpcFunc func(*RPCRequest, *RPCReply) bool
+type RpcFunc func(*RPCRequest, *RPCReply)

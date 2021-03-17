@@ -39,24 +39,22 @@ func (ls *LockServer) unlock_core(args grove_common.RPCVals) uint64 {
 
 //
 // server Lock RPC handler.
-// returns true iff error
 //
-func (ls *LockServer) TryLock(req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
+func (ls *LockServer) TryLock(req *grove_common.RPCRequest, reply *grove_common.RPCReply) {
 	ls.mu.Lock()
-	r := ls.sv.HandleRequest(ls.tryLock_core, req, reply)
+	ls.sv.HandleRequest(ls.tryLock_core, req, reply)
 	ls.mu.Unlock()
-	return r
+	return
 }
 
 //
 // server Unlock RPC handler.
-// returns true iff error
 //
-func (ls *LockServer) Unlock(req *grove_common.RPCRequest, reply *grove_common.RPCReply) bool {
+func (ls *LockServer) Unlock(req *grove_common.RPCRequest, reply *grove_common.RPCReply) {
 	ls.mu.Lock()
-	r := ls.sv.HandleRequest(ls.unlock_core, req, reply)
+	ls.sv.HandleRequest(ls.unlock_core, req, reply)
 	ls.mu.Unlock()
-	return r
+	return
 }
 
 func MakeLockServer() *LockServer {
