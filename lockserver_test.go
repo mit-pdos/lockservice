@@ -6,7 +6,6 @@ import (
 	"github.com/mit-pdos/lockservice/grove_ffi"
 	"log"
 	"math/big"
-	"os"
 	"runtime"
 	"sync"
 	"testing"
@@ -37,8 +36,15 @@ func tu(t *testing.T, ck *Clerk, lockname uint64, expected bool) {
 func TestBasicConcurrent(t *testing.T) {
 	fmt.Printf("Test: Basic concurrent lock/unlock ...\n")
 
-	ck1 := MakeClerk("localhost:12345", nrand())
-	ck2 := MakeClerk("localhost:12345", nrand())
+	runtime.GOMAXPROCS(100)
+
+	p := MakeLockServer()
+	log.Printf("Starting lockserver\n")
+	grove_ffi.SetPort(12300)
+	go p.Start()
+
+	ck1 := MakeClerk("localhost:12300", nrand())
+	ck2 := MakeClerk("localhost:12300", nrand())
 
 	val := 0
 
@@ -68,16 +74,6 @@ func TestBasicConcurrent(t *testing.T) {
 	}
 
 	fmt.Printf("  ... Passed\n")
-}
-
-func TestMain(m *testing.M) {
-	runtime.GOMAXPROCS(100)
-
-	grove_ffi.SetPort(12345)
-	p := MakeLockServer()
-	log.Printf("Starting lockserver\n")
-	go p.Start()
-
-	code := m.Run()
-	os.Exit(code)
+	// TODO: can shut down the HTTP RPC server
+	// https://pkg.go.dev/net/http#Server.Shutdown
 }
