@@ -45,14 +45,29 @@ func StartRPCServer(handlers map[uint64]grove_common.RawRpcFunc) {
 		s.rpcHandlers = handlers
 	}
 
-	rpc.Register(s)
-	rpc.HandleHTTP()
+    serv := rpc.NewServer()
+	serv.Register(s)
+
+	// XXX: https://github.com/golang/go/issues/13395
+    // ===== workaround ==========
+    oldMux := http.DefaultServeMux
+    mux := http.NewServeMux()
+    http.DefaultServeMux = mux
+    // ===========================
+
+    serv.HandleHTTP(rpc.DefaultRPCPath, rpc.DefaultDebugPath)
+
+    // ===== workaround ==========
+    http.DefaultServeMux = oldMux
+    // ===========================
+
 	l, e := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	log.Printf("Serving")
 	if e != nil {
 		panic(e)
 	}
 	func() {
-		log.Fatal(http.Serve(l, nil))
+		log.Fatal(http.Serve(l, mux))
 	}()
 }
 
