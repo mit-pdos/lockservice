@@ -46,6 +46,7 @@ func AtomicAppend(filename string, data []byte) {
 	}
 	f.Write(data)
 	syscall.Fdatasync(int(f.Fd()))
+	f.Close()
 }
 
 // injective function u64 -> str
