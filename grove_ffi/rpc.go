@@ -65,7 +65,7 @@ func StartRPCServer(handlers map[uint64]grove_common.RawRpcFunc) {
 }
 
 type RPCClient struct {
-	rpc.Client
+	*rpc.Client
 }
 
 func MakeRPCClient(host string) *RPCClient {
@@ -73,7 +73,7 @@ func MakeRPCClient(host string) *RPCClient {
 	if err != nil {
 		panic(err)
 	}
-	return &RPCClient{*cl}
+	return &RPCClient{cl}
 }
 
 // This is how a client invokes a "raw" RPC
