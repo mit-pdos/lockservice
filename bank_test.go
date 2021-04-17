@@ -27,10 +27,11 @@ func TestBank(t *testing.T) {
 	grove_ffi.SetPort(12303)
 	MakeKVServer().Start()
 
-	kv_ck := MakeKVClerk("localhost:12303", nrand())
+	// kv_ck := MakeKVClerk("localhost:12303", nrand())
+	kv_ck := MakeKVClerk(12303, nrand())
 	kv_ck.Put(0, 100) // initialize bank to have 100 total
 
-	b := MakeBank("localhost:12302", "localhost:12303")
+	b := MakeBank(12302, 12303)
 	ck1 := MakeBankClerk(b, 0, 1, nrand())
 	ck2 := MakeBankClerk(b, 0, 1, nrand())
 	ck3 := MakeBankClerk(b, 0, 1, nrand())

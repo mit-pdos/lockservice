@@ -1,5 +1,11 @@
 package lockservice
 
+import (
+	"github.com/mit-pdos/lockservice/grove_ffi"
+)
+
+type HostName = grove_ffi.HostName
+
 func nondet() bool {
 	return true
 }

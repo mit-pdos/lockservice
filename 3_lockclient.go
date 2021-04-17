@@ -9,14 +9,14 @@ import (
 // and maintains a little state.
 //
 type Clerk struct {
-	host   string
+	host   uint64
 	client *RPCClient
 }
 
 const LOCK_TRYLOCK uint64 = 1
 const LOCK_UNLOCK uint64 = 2
 
-func MakeClerk(host string, cid uint64) *Clerk {
+func MakeClerk(host uint64, cid uint64) *Clerk {
 	ck := new(Clerk)
 	ck.host = host
 	ck.client = MakeRPCClient(host, cid)

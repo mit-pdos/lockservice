@@ -3,8 +3,8 @@ package lockservice
 import ()
 
 type Bank struct {
-	ls string
-	ks string
+	ls HostName
+	ks HostName
 }
 
 type BankClerk struct {
@@ -60,7 +60,7 @@ func (bck *BankClerk) SimpleAudit() uint64 {
 	return sum
 }
 
-func MakeBank(lsid string, ksid string /* acc uint64, balance uint64*/) Bank {
+func MakeBank(lsid HostName, ksid HostName /* acc uint64, balance uint64*/) Bank {
 	return Bank{ls: lsid, ks: ksid}
 }
 

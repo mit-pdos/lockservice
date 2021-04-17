@@ -87,7 +87,7 @@ type RPCClient struct {
 	rawCl *grove_ffi.RPCClient
 }
 
-func MakeRPCClient(host string, cid uint64) *RPCClient {
+func MakeRPCClient(host uint64, cid uint64) *RPCClient {
 	return &RPCClient{cid: cid, seq: 1, rawCl: grove_ffi.MakeRPCClient(host)}
 }
 
@@ -95,7 +95,7 @@ func MakeRPCClient(host string, cid uint64) *RPCClient {
 func RemoteProcedureCall2(cl *grove_ffi.RPCClient, rpcid uint64, req *grove_common.RPCRequest, rep *grove_common.RPCReply) bool {
 	rawReq := rpcReqEncode(req)
 	rawRep := new([]byte)
-	errb := cl.RemoteProcedureCall(rpcid, rawReq, rawRep)
+	errb := cl.Call(rpcid, rawReq, rawRep)
 	if errb == false {
 		rpcReplyDecode(*rawRep, rep)
 	}

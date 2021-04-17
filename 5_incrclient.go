@@ -5,13 +5,13 @@ import (
 )
 
 type IncrClerk struct {
-	host   string // IncrServer
+	host   HostName // IncrServer
 	client *RPCClient
 	cid    uint64
 	seq    uint64
 }
 
-func MakeIncrClerk(host string, cid uint64) *IncrClerk {
+func MakeIncrClerk(host HostName, cid uint64) *IncrClerk {
 	ck := new(IncrClerk)
 	ck.host = host
 	ck.client = MakeRPCClient(host, cid)

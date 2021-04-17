@@ -28,7 +28,7 @@ func TestKVStore(t *testing.T) {
 	grove_ffi.SetPort(12301)
 	MakeKVServer().Start()
 
-	ck1 := MakeKVClerk("localhost:12301", nrand())
+	ck1 := MakeKVClerk(12301, nrand())
 	tp(t, ck1, 0, 12)
 	tg(t, ck1, 0, 12)
 	tp(t, ck1, 0, 13)

@@ -7,13 +7,13 @@ import (
 )
 
 type KVClerk struct {
-	host   string
+	host   HostName
 	client *RPCClient
 	cid    uint64
 	seq    uint64
 }
 
-func MakeKVClerk(host string, cid uint64) *KVClerk {
+func MakeKVClerk(host HostName, cid uint64) *KVClerk {
 	ck := new(KVClerk)
 	ck.host = host
 	ck.client = MakeRPCClient(host, cid)

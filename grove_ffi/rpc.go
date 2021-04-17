@@ -10,6 +10,9 @@ import (
 )
 
 var port uint64
+var config map[uint64]string
+
+type HostName = uint64
 
 // this is NOT exposed in the FFI. This just allows us to have StartServer()
 // serve at different ports on the same host without exposing port numbers to
@@ -17,6 +20,11 @@ var port uint64
 func SetPort(p uint64) {
 	port = p
 }
+
+func SetConfig(c map[uint64]string) {
+	config = c
+}
+
 
 // shim so we can use net/rpc
 // net/rpc does the work of managing the network connections and matching up
@@ -68,8 +76,8 @@ type RPCClient struct {
 	cl *rpc.Client
 }
 
-func MakeRPCClient(host string) *RPCClient {
-	cl, err := rpc.DialHTTP("tcp", host)
+func MakeRPCClient(host uint64) *RPCClient {
+	cl, err := rpc.DialHTTP("tcp", config[host])
 	if err != nil {
 		panic(err)
 	}

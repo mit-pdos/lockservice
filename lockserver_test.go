@@ -42,8 +42,8 @@ func TestBasicConcurrent(t *testing.T) {
 	grove_ffi.SetPort(12300)
 	MakeLockServer().Start()
 
-	ck1 := MakeClerk("localhost:12300", nrand())
-	ck2 := MakeClerk("localhost:12300", nrand())
+	ck1 := MakeClerk(12300, nrand())
+	ck2 := MakeClerk(12300, nrand())
 
 	val := 0
 
