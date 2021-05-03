@@ -2,7 +2,7 @@ package grove_common
 
 type RawRPCRequest struct {
 	RpcId uint64
-	Data []byte
+	Data  []byte
 }
 
 type RawRPCReply struct {

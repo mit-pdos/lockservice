@@ -79,7 +79,6 @@ func ConjugateRpcFunc(r grove_common.RpcFunc) grove_common.RawRpcFunc {
 	}
 }
 
-
 // Common code for RPC clients: tracking of CID and next sequence number.
 type RPCClient struct {
 	cid   uint64

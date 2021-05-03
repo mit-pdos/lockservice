@@ -2,11 +2,11 @@ package grove_ffi
 
 import (
 	"fmt"
-	"net"
-	"net/rpc"
-	"log"
-	"net/http"
 	"github.com/mit-pdos/lockservice/grove_common"
+	"log"
+	"net"
+	"net/http"
+	"net/rpc"
 )
 
 var port uint64
@@ -24,7 +24,6 @@ func SetPort(p uint64) {
 func SetConfig(c map[uint64]string) {
 	config = c
 }
-
 
 // shim so we can use net/rpc
 // net/rpc does the work of managing the network connections and matching up
@@ -47,21 +46,21 @@ func StartRPCServer(handlers map[uint64]grove_common.RawRpcFunc) {
 
 	s.rpcHandlers = handlers
 
-    serv := rpc.NewServer()
+	serv := rpc.NewServer()
 	serv.Register(s)
 
 	// XXX: https://github.com/golang/go/issues/13395
-    // ===== workaround ==========
-    oldMux := http.DefaultServeMux
-    mux := http.NewServeMux()
-    http.DefaultServeMux = mux
-    // ===========================
+	// ===== workaround ==========
+	oldMux := http.DefaultServeMux
+	mux := http.NewServeMux()
+	http.DefaultServeMux = mux
+	// ===========================
 
-    serv.HandleHTTP(rpc.DefaultRPCPath, rpc.DefaultDebugPath)
+	serv.HandleHTTP(rpc.DefaultRPCPath, rpc.DefaultDebugPath)
 
-    // ===== workaround ==========
-    http.DefaultServeMux = oldMux
-    // ===========================
+	// ===== workaround ==========
+	http.DefaultServeMux = oldMux
+	// ===========================
 
 	l, e := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if e != nil {
@@ -88,7 +87,7 @@ func MakeRPCClient(host uint64) *RPCClient {
 // Returns true if there was an error
 func (cl *RPCClient) Call(rpcid uint64, args []byte, reply *[]byte) bool {
 	*reply = make([]byte, 0)
-	e := cl.cl.Call("RPCHandler.Handle", &grove_common.RawRPCRequest{RpcId:rpcid, Data:args}, reply)
+	e := cl.cl.Call("RPCHandler.Handle", &grove_common.RawRPCRequest{RpcId: rpcid, Data: args}, reply)
 	if e != nil {
 		panic(e)
 	}
